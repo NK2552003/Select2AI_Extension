@@ -133,6 +133,12 @@
       selection: selectedText, url: location.href, title: document.title
     });
     showPanel('custom', selectedText, null, template.name);
+
+    // Hide the top custom input area since template prompt is sent automatically;
+    // only the bottom follow-up input should remain visible after response.
+    const customInputArea = panel?.querySelector('.s2ai-custom-input-area');
+    if (customInputArea) customInputArea.style.display = 'none';
+
     executor.executeQuery('custom', selectedText, { customPrompt: prompt }, null, {
       buildPrompt, isPageContextEnabled: () => pageContextEnabled,
       getPageContext: () => ({ title: document.title, url: location.href, description: '' }),
