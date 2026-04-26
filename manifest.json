@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Select2AI: GitHub Models",
-  "version": "1.0.0",
-  "description": "Select text on any page to ask GitHub Models: summarize, explain, answer, or custom question in a floating window (light/dark, GSAP).",
+  "version": "2.0.0",
+  "description": "Select text on any page to ask GitHub Models: summarize, explain, answer, code intelligence, chat, history, knowledge base, and more.",
   "action": {
     "default_title": "Select2AI",
     "default_popup": "popup.html"
@@ -12,23 +12,67 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["https://models.github.ai/*"],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "contextMenus",
+    "clipboardWrite",
+    "commands",
+    "tts"
+  ],
+  "host_permissions": [
+    "https://models.github.ai/*",
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "options_page": "options/options.html",
+  "commands": {
+    "open-action-menu": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+A",
+        "mac": "Command+Shift+A"
+      },
+      "description": "Open Select2AI action menu for current selection"
+    },
+    "save-to-kb": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Save last response to Knowledge Base"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["contentScript.js"],
+      "css": ["styles/floating.css"],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["vendor/gsap.min.js", "styles/floating.css", "vendor/katex.min.js", "vendor/katex.min.css"],
+      "resources": [
+        "vendor/gsap.min.js",
+        "vendor/lucide.min.js",
+        "scripts/icons.js",
+        "styles/floating.css",
+        "vendor/katex.min.js",
+        "vendor/katex.min.css",
+        "modules/smartDetect.js",
+        "modules/chatHistory.js",
+        "modules/knowledgeBase.js",
+        "modules/responseToolbar.js",
+        "modules/compareMode.js",
+        "modules/promptTemplates.js",
+        "modules/iconRegistry.js",
+        "modules/contentUI.js",
+        "modules/contentQuery.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ],

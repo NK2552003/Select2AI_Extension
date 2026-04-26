@@ -1,80 +1,343 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Select2AI Settings</title>
-    <link rel="stylesheet" href="options.css" />
-    <script src="options.js" defer></script>
-  </head>
-  <body>
-    <div class="container">
-      <header class="header">
-        <div class="logo">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M12 3l1.8 3.9L18 8.7l-3.6 3.3L15 18l-3-1.9L9 18l.6-6L6 8.7l4.2-1.8L12 3z" />
-          </svg>
-          <h1>Select2AI Settings</h1>
-        </div>
-        <p class="subtitle">Configure your GitHub Models integration</p>
-      </header>
+<head>
+  <meta charset="UTF-8" />
+  <title>Select2AI Options</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="opts-layout">
 
-      <main class="main">
-        <section class="section">
-          <label class="label">
-            <span class="label-text">
-              <span class="label-title">GitHub Personal Access Token</span>
-              <span class="label-desc">Classic token with access to GitHub Models API</span>
-            </span>
-            <input id="token" class="input" type="password" placeholder="ghp_********************************" autocomplete="off" />
-          </label>
-
-          <label class="label">
-            <span class="label-text">
-              <span class="label-title">AI Model</span>
-              <span class="label-desc">Select the model to use for responses</span>
-            </span>
-            <select id="model" class="select" aria-label="AI Model">
-              <option value="">Loading models...</option>
-            </select>
-          </label>
-        </section>
-
-        <footer class="footer">
-          <button id="save" class="btn btn-primary" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-              <polyline points="17 21 17 13 7 13 7 21"/>
-              <polyline points="7 3 7 8 15 8"/>
-            </svg>
-            Save Settings
-          </button>
-          <button id="test" class="btn btn-secondary" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-            </svg>
-            Test Connection
-          </button>
-          <span id="status" class="status" aria-live="polite"></span>
-        </footer>
-      </main>
-
-      <div class="info-box" role="note">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="16" x2="12" y2="12"/>
-          <line x1="12" y1="8" x2="12.01" y2="8"/>
-        </svg>
+    <!-- Sidebar -->
+    <nav class="opts-sidebar">
+      <div class="opts-brand">
+        <div class="opts-logo">S2</div>
         <div>
-          <strong>How to get started:</strong>
-          <ol>
-            <li>Create a GitHub Personal Access Token (classic) at <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer noopener">github.com/settings/tokens</a></li>
-            <li>Ensure the token has appropriate permissions for GitHub Models</li>
-            <li>Paste your token above and select your preferred model</li>
-            <li>Click "Save Settings" and test the connection</li>
-          </ol>
+          <div class="opts-brand-name">Select<span>2AI</span></div>
+          <div class="opts-brand-ver">v2.0.0</div>
         </div>
       </div>
-    </div>
-  </body>
+      <ul class="opts-nav">
+<li><a href="#section-api" class="opts-nav-link active" data-section="api"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> API & Model</a></li>
+<li><a href="#section-behavior" class="opts-nav-link" data-section="behavior"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Behavior</a></li>
+<li><a href="#section-templates" class="opts-nav-link" data-section="templates"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Templates</a></li>
+<li><a href="#section-shortcuts" class="opts-nav-link" data-section="shortcuts"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/><path d="M18 8h.01"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/><path d="M7 16h10"/></svg> Shortcuts</a></li>
+<li><a href="#section-compare" class="opts-nav-link" data-section="compare"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg> Compare Mode</a></li>
+<li><a href="#section-data" class="opts-nav-link" data-section="data"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> Data & Privacy</a></li>
+      </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="opts-main">
+<div id="save-toast" class="opts-save-toast"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Settings saved!</div>
+
+      <!-- ── API & Model ─────────────────────────────────────── -->
+      <section id="section-api" class="opts-section active">
+        <div class="opts-section-header">
+          <h2>API & Model</h2>
+          <p>Configure your GitHub Models API access and default model.</p>
+        </div>
+
+        <div class="opts-card">
+          <div class="opts-field">
+            <label for="github-token">GitHub Models API Token <span class="required">*</span></label>
+            <div class="opts-input-group">
+              <input type="password" id="github-token" placeholder="ghp_..." autocomplete="off" />
+              <button class="opts-icon-btn" id="toggle-token-vis" title="Show/hide token">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+            <p class="opts-hint">Get your token at <a href="https://github.com/marketplace/models" target="_blank">github.com/marketplace/models</a>. Stored securely in browser sync storage.</p>
+          </div>
+
+          <div class="opts-field">
+            <label for="api-endpoint">API Endpoint</label>
+            <input type="url" id="api-endpoint" placeholder="https://models.github.ai/inference" />
+            <p class="opts-hint">Leave default unless using a custom proxy.</p>
+          </div>
+
+          <div class="opts-field">
+            <label for="default-model">Default Model</label>
+            <select id="default-model">
+              <optgroup label="OpenAI">
+                <option value="openai/gpt-4.1-mini">GPT-4.1 Mini (Fast, efficient)</option>
+                <option value="openai/gpt-4.1">GPT-4.1</option>
+                <option value="openai/gpt-5">GPT-5</option>
+                <option value="openai/gpt-5-chat">GPT-5 Chat</option>
+              </optgroup>
+              <optgroup label="DeepSeek">
+                <option value="deepseek/DeepSeek-V3-0324">DeepSeek V3</option>
+              </optgroup>
+              <optgroup label="Meta Llama">
+                <option value="meta/Llama-4-Scout-17B-16E-Instruct">Llama 4 Scout</option>
+              </optgroup>
+              <optgroup label="xAI">
+                <option value="xai/grok-3">Grok 3</option>
+                <option value="xai/grok-3-mini">Grok 3 Mini</option>
+              </optgroup>
+              <optgroup label="Mistral AI">
+                <option value="mistral-ai/mistral-medium-2505">Mistral Medium</option>
+                <option value="mistral-ai/mistral-small-2503">Mistral Small</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div id="token-status" class="opts-token-status"></div>
+<button class="opts-btn opts-btn--primary" id="btn-test-token">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-8 0V8Z"/></svg> Test Connection
+          </button>
+        </div>
+      </section>
+
+      <!-- ── Behavior ────────────────────────────────────────── -->
+      <section id="section-behavior" class="opts-section">
+        <div class="opts-section-header">
+          <h2>Behavior</h2>
+          <p>Customize how Select2AI behaves on webpages.</p>
+        </div>
+
+        <div class="opts-card">
+          <div class="opts-toggle-item">
+            <div class="opts-toggle-info">
+              <div class="opts-toggle-title">Streaming Responses</div>
+              <div class="opts-toggle-desc">Show AI responses word-by-word as they're generated</div>
+              </div>
+            <label class="toggle-switch"><input type="checkbox" id="opt-streaming" /><span class="slider"></span></label>
+          </div>
+
+          <div class="opts-toggle-item">
+            <div class="opts-toggle-info">
+              <div class="opts-toggle-title">Include Page Context by Default</div>
+              <div class="opts-toggle-desc">Automatically include page title, URL, and meta description with every query</div>
+              </div>
+            <label class="toggle-switch"><input type="checkbox" id="opt-pagecontext" /><span class="slider"></span></label>
+          </div>
+
+          <div class="opts-toggle-item">
+            <div class="opts-toggle-info">
+              <div class="opts-toggle-title">Auto-save Queries to History</div>
+              <div class="opts-toggle-desc">Automatically save all AI queries and responses to history</div>
+              </div>
+            <label class="toggle-switch"><input type="checkbox" id="opt-autosave" checked /><span class="slider"></span></label>
+          </div>
+
+          <div class="opts-toggle-item">
+            <div class="opts-toggle-info">
+              <div class="opts-toggle-title">Show Selection Insights Bar</div>
+              <div class="opts-toggle-desc">Display word count, read time, and content type in the action menu</div>
+              </div>
+            <label class="toggle-switch"><input type="checkbox" id="opt-insights" checked /><span class="slider"></span></label>
+          </div>
+
+          <div class="opts-field" style="margin-top:16px">
+            <label for="opt-history-limit">History Auto-cleanup Limit</label>
+            <select id="opt-history-limit">
+              <option value="50">50 entries</option>
+              <option value="100">100 entries</option>
+              <option value="150" selected>150 entries (default)</option>
+              <option value="300">300 entries</option>
+              <option value="0">No limit</option>
+            </select>
+            <p class="opts-hint">Older entries beyond this limit are automatically removed.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Templates ───────────────────────────────────────── -->
+      <section id="section-templates" class="opts-section">
+        <div class="opts-section-header">
+          <h2>Custom Prompt Templates</h2>
+          <p>Create reusable prompt templates with variables: <code>{selection}</code>, <code>{url}</code>, <code>{title}</code>, <code>{language}</code></p>
+        </div>
+
+        <div class="opts-card">
+          <div class="opts-templates-toolbar">
+            <button class="opts-btn opts-btn--primary" id="btn-new-template">+ New Template</button>
+            <span class="opts-hint" style="margin:0">Templates appear in the action menu when you select text.</span>
+          </div>
+
+          <div id="templates-list" class="opts-templates-list">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Template Editor (hidden by default) -->
+        <div id="template-editor" class="opts-card opts-template-editor" style="display:none">
+          <h3 id="editor-title">New Template</h3>
+
+          <div class="opts-field">
+            <label for="tpl-name">Template Name</label>
+            <input type="text" id="tpl-name" placeholder="e.g. Explain Like I'm 5" maxlength="50" />
+          </div>
+
+          <div class="opts-field">
+            <label for="tpl-icon">Icon (Lucide name, e.g. baby, list, target)</label>
+            <input type="text" id="tpl-icon" placeholder="zap" maxlength="20" style="width:120px" />
+          </div>
+
+          <div class="opts-field">
+            <label for="tpl-body">Prompt Template</label>
+            <textarea id="tpl-body" rows="5" placeholder="Your prompt here:\n\n{selection}"></textarea>
+            <p class="opts-hint">
+              Available variables: <code>{selection}</code> (selected text), <code>{url}</code> (page URL),
+              <code>{title}</code> (page title), <code>{language}</code> (target language if applicable)
+            </p>
+          </div>
+
+          <div class="opts-field">
+            <label for="tpl-category">Category</label>
+            <select id="tpl-category">
+              <option value="custom">Custom</option>
+              <option value="explain">Explain</option>
+              <option value="summarize">Summarize</option>
+              <option value="analyze">Analyze</option>
+              <option value="rewrite">Rewrite</option>
+              <option value="code">Code</option>
+            </select>
+          </div>
+
+          <div class="opts-editor-actions">
+            <button class="opts-btn opts-btn--primary" id="btn-save-template">Save Template</button>
+            <button class="opts-btn" id="btn-cancel-template">Cancel</button>
+          </div>
+
+          <input type="hidden" id="tpl-editing-id" />
+        </div>
+      </section>
+
+      <!-- ── Shortcuts ────────────────────────────────────────── -->
+      <section id="section-shortcuts" class="opts-section">
+        <div class="opts-section-header">
+          <h2>Keyboard Shortcuts</h2>
+          <p>Trigger Select2AI without touching the mouse.</p>
+        </div>
+
+        <div class="opts-card">
+          <div class="opts-shortcut-item">
+            <div class="opts-shortcut-info">
+              <div class="opts-shortcut-title">Open Action Menu</div>
+              <div class="opts-shortcut-desc">Opens the action menu for the currently selected text</div>
+              </div>
+            <div class="opts-shortcut-keys">
+              <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>
+              <span class="opts-shortcut-mac">(Mac: ⌘⇧A)</span>
+            </div>
+          </div>
+          <div class="opts-shortcut-item">
+            <div class="opts-shortcut-info">
+              <div class="opts-shortcut-title">Save to Knowledge Base</div>
+              <div class="opts-shortcut-desc">Saves the last AI response to your Knowledge Base</div>
+            </div>
+            <div class="opts-shortcut-keys">
+              <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>
+              <span class="opts-shortcut-mac">(Mac: ⌘⇧S)</span>
+            </div>
+          </div>
+          <div class="opts-shortcut-item">
+            <div class="opts-shortcut-info">
+              <div class="opts-shortcut-title">Close Panel</div>
+              <div class="opts-shortcut-desc">Dismiss the floating AI panel</div>
+            </div>
+            <div class="opts-shortcut-keys">
+              <kbd>Esc</kbd>
+            </div>
+          </div>
+
+          <div class="opts-hint" style="margin-top:10px">
+            To customize keyboard shortcuts, visit <a href="chrome://extensions/shortcuts" target="_blank">chrome://extensions/shortcuts</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Compare Mode ─────────────────────────────────────── -->
+      <section id="section-compare" class="opts-section">
+        <div class="opts-section-header">
+          <h2>Compare Mode</h2>
+          <p>Set the default models used when Compare Mode is enabled from the action menu.</p>
+        </div>
+
+        <div class="opts-card">
+          <div class="opts-compare-grid">
+            <div class="opts-field">
+              <label for="compare-model-a">Model A (Left)</label>
+              <select id="compare-model-a">
+                <option value="openai/gpt-4.1-mini">GPT-4.1 Mini</option>
+                <option value="openai/gpt-4.1" selected>GPT-4.1</option>
+                <option value="openai/gpt-5">GPT-5</option>
+                <option value="openai/gpt-5-chat">GPT-5 Chat</option>
+                <option value="deepseek/DeepSeek-V3-0324">DeepSeek V3</option>
+                <option value="meta/Llama-4-Scout-17B-16E-Instruct">Llama 4 Scout</option>
+                <option value="xai/grok-3">Grok 3</option>
+                <option value="xai/grok-3-mini">Grok 3 Mini</option>
+                <option value="mistral-ai/mistral-medium-2505">Mistral Medium</option>
+                <option value="mistral-ai/mistral-small-2503">Mistral Small</option>
+              </select>
+            </div>
+            <div class="opts-compare-vs">VS</div>
+            <div class="opts-field">
+              <label for="compare-model-b">Model B (Right)</label>
+              <select id="compare-model-b">
+                <option value="openai/gpt-4.1-mini">GPT-4.1 Mini</option>
+                <option value="openai/gpt-4.1">GPT-4.1</option>
+                <option value="openai/gpt-5">GPT-5</option>
+                <option value="openai/gpt-5-chat">GPT-5 Chat</option>
+                <option value="deepseek/DeepSeek-V3-0324">DeepSeek V3</option>
+                <option value="meta/Llama-4-Scout-17B-16E-Instruct" selected>Llama 4 Scout</option>
+                <option value="xai/grok-3">Grok 3</option>
+                <option value="xai/grok-3-mini">Grok 3 Mini</option>
+                <option value="mistral-ai/mistral-medium-2505">Mistral Medium</option>
+                <option value="mistral-ai/mistral-small-2503">Mistral Small</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Data & Privacy ────────────────────────────────────── -->
+      <section id="section-data" class="opts-section">
+        <div class="opts-section-header">
+          <h2>Data & Privacy</h2>
+          <p>Manage your stored data. All data is stored locally in your browser.</p>
+        </div>
+
+        <div class="opts-card">
+          <div id="data-stats" class="opts-data-stats">Loading storage info…</div>
+
+          <div class="opts-data-actions">
+<button class="opts-btn opts-btn--danger" id="btn-clear-history-opts">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Clear All History
+            </button>
+<button class="opts-btn opts-btn--danger" id="btn-clear-kb">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Clear Knowledge Base
+            </button>
+<button class="opts-btn opts-btn--danger" id="btn-clear-templates">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Reset Templates to Default
+            </button>
+<button class="opts-btn opts-btn--danger" id="btn-reset-all">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Reset All Settings
+            </button>
+          </div>
+
+          <div class="opts-privacy-note">
+            <strong>Privacy:</strong> Your API token is stored in Chrome's sync storage (encrypted). 
+            All queries and history are stored only in local browser storage and are never sent to any server 
+            other than the GitHub Models API.
+          </div>
+        </div>
+      </section>
+
+      <!-- Save Bar -->
+      <div class="opts-save-bar">
+        <button class="opts-btn opts-btn--primary opts-btn--lg" id="btn-save-all">Save All Settings</button>
+        <span id="save-status" class="opts-save-status"></span>
+      </div>
+    </main>
+  </div>
+
+  <script src="../scripts/icons.js"></script>
+  <script src="options.js"></script>
+</body>
 </html>

@@ -1,152 +1,374 @@
-const DEFAULT_ENDPOINT = "https://models.github.ai/inference/chat/completions"
+// ============================================================
+// Select2AI Options Page v2.0
+// ============================================================
 
-// Available GitHub Models (OpenAI + others)
-const GITHUB_MODELS = [
-  // OpenAI (GitHub Models)
-  { id: "gpt-4.1", name: "GPT-4.1 (OpenAI)" },
-  { id: "gpt-4.1-mini", name: "GPT-4.1 Mini (OpenAI)" },
-  { id: "gpt-4.1-nano", name: "GPT-4.1 Nano (OpenAI)" },
-  { id: "gpt-4o", name: "GPT-4o (OpenAI)" },
-  { id: "gpt-4o-nano", name: "GPT-4o Nano (OpenAI)" },
-  { id: "gpt-5", name: "GPT-5 (OpenAI)" },
-  { id: "gpt-5-chat", name: "GPT-5 Chat (OpenAI)" },
-  { id: "gpt-5-nano", name: "GPT-5 Nano (OpenAI)" },
-  { id: "o1", name: "O1 (OpenAI)" },
-  { id: "o1-mini", name: "O1 Mini (OpenAI)" },
-  { id: "o1-preview", name: "O1 Preview (OpenAI)" },
-  { id: "o3", name: "O3 (OpenAI)" },
-  { id: "o3-mini", name: "O3 Mini (OpenAI)" },
-  { id: "o4-mini", name: "O4 Mini (OpenAI)" },
+const DEFAULT_TEMPLATES = [
+  { id: 'tpl_eli5', name: "Explain Like I'm 5", icon: 'baby', body: 'Explain the following in the simplest terms possible, as if explaining to a 5-year-old:\n\n{selection}', category: 'explain', isDefault: true },
+  { id: 'tpl_bullet', name: 'Key Bullet Points', icon: 'list', body: 'Extract the key bullet points from the following text. Be concise:\n\n{selection}', category: 'summarize', isDefault: true },
+  { id: 'tpl_critique', name: 'Critical Analysis', icon: 'target', body: 'Provide a critical analysis of the following, highlighting strengths, weaknesses, and areas for improvement:\n\n{selection}', category: 'analyze', isDefault: true },
+  { id: 'tpl_context', name: 'Add Context', icon: 'globe', body: 'Explain the broader context and background of the following from the page "{title}" ({url}):\n\n{selection}', category: 'explain', isDefault: true },
+  { id: 'tpl_counterarg', name: 'Counter Arguments', icon: 'scale', body: 'What are the main counter-arguments or opposing perspectives to the following statement or idea?\n\n{selection}', category: 'analyze', isDefault: true }
+];
 
-  // Meta Llama
-  { id: "meta-llama/Meta-Llama-3.1-8B-Instruct", name: "Llama 3.1 8B (Meta)" },
-  { id: "meta-llama/Meta-Llama-3.1-70B-Instruct", name: "Llama 3.1 70B (Meta)" },
-  { id: "meta-llama/Meta-Llama-3.1-405B-Instruct", name: "Llama 3.1 405B (Meta)" },
+// ── Helpers ───────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
 
-  // Mistral
-  { id: "mistralai/Mistral-large", name: "Mistral Large (Mistral AI)" },
-  { id: "mistralai/Mistral-large-2407", name: "Mistral Large 2407 (Mistral AI)" },
-  { id: "mistralai/Mistral-Nemo", name: "Mistral Nemo (Mistral AI)" },
-  { id: "mistralai/Mistral-small", name: "Mistral Small (Mistral AI)" },
-
-  // Cohere
-  { id: "cohere/Cohere-command-r", name: "Command R (Cohere)" },
-  { id: "cohere/Cohere-command-r-plus", name: "Command R+ (Cohere)" },
-
-  // AI21
-  { id: "AI21-Jamba-Instruct", name: "Jamba Instruct (AI21)" },
-]
-
-const tokenEl = document.getElementById("token")
-const modelEl = document.getElementById("model")
-const statusEl = document.getElementById("status")
-const saveBtn = document.getElementById("save")
-const testBtn = document.getElementById("test")
-
-// Initialize
-;(async function init() {
-  // Populate model dropdown
-  modelEl.innerHTML = GITHUB_MODELS.map(
-    (m) => `<option value="${m.id}">${m.name}</option>`
-  ).join("")
-
-  // Load saved settings
-  const { ghToken, model } = await chrome.storage.sync.get(["ghToken", "model"])
-  tokenEl.value = ghToken || ""
-  const desired = model || GITHUB_MODELS[0].id
-  // If previously saved model is not in the list, add a temporary option
-  if (desired && !GITHUB_MODELS.some((m) => m.id === desired)) {
-    const opt = document.createElement("option")
-    opt.value = desired
-    opt.textContent = `Custom: ${desired}`
-    modelEl.insertBefore(opt, modelEl.firstChild)
-  }
-  modelEl.value = desired
-})()
-
-// Save settings
-saveBtn.addEventListener("click", async () => {
-  const ghToken = tokenEl.value.trim()
-  const model = modelEl.value.trim()
-
-  if (!ghToken) {
-    showStatus("Please enter a GitHub token", "error")
-    return
-  }
-
-  if (!model) {
-    showStatus("Please select a model", "error")
-    return
-  }
-
-  try {
-    await chrome.storage.sync.set({ ghToken, model, endpoint: DEFAULT_ENDPOINT })
-    showStatus("Settings saved successfully!", "success")
-  } catch (error) {
-    showStatus("Failed to save settings", "error")
-  }
-})
-
-// Test connection
-testBtn.addEventListener("click", async () => {
-  const ghToken = tokenEl.value.trim()
-  const model = modelEl.value.trim()
-
-  if (!ghToken) {
-    showStatus("Please enter a GitHub token first", "error")
-    return
-  }
-
-  showStatus("Testing connection...", "loading")
-  testBtn.disabled = true
-
-  try {
-    const res = await fetch(DEFAULT_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${ghToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: "You are a helpful assistant." },
-          { role: "user", content: "Reply with just the word: success" },
-        ],
-        temperature: 0,
-        max_tokens: 10,
-      }),
-    })
-
-    if (!res.ok) {
-      const errorText = await res.text().catch(() => "")
-      showStatus(`Connection failed: ${res.status} ${errorText || res.statusText}`, "error")
-      return
-    }
-
-    const data = await res.json()
-    const content = data?.choices?.[0]?.message?.content || ""
-
-    if (content) {
-      showStatus("✓ Connection successful!", "success")
-    } else {
-      showStatus("Unexpected response format", "error")
-    }
-  } catch (error) {
-    showStatus(`Connection failed: ${error.message}`, "error")
-  } finally {
-    testBtn.disabled = false
-  }
-})
-
-function showStatus(message, type = "loading") {
-  statusEl.textContent = message
-  statusEl.className = `status ${type}`
-
-  if (type === "success" || type === "error") {
-    setTimeout(() => {
-      statusEl.textContent = ""
-      statusEl.className = "status"
-    }, 4000)
-  }
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;').replace(/</g, '<')
+    .replace(/>/g, '>').replace(/"/g, '"');
 }
+
+function refreshIcons(root = document) {
+  if (window.lucide) lucide.createIcons({ attrs: { 'stroke-width': 2 }, nodes: [root] });
+}
+
+function showToast(msg = `${S2AI_ICONS.icon('check-circle', 14)} Settings saved!`) {
+  const toast = $('save-toast');
+  if (!toast) return;
+  toast.innerHTML = msg;
+  toast.classList.add('show');
+  refreshIcons(toast);
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function msg(type, data = {}) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type, ...data }, resolve);
+  });
+}
+
+// ── Sidebar Navigation ─────────────────────────────────────────
+function initNavigation() {
+  document.querySelectorAll('.opts-nav-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const section = link.dataset.section;
+      document.querySelectorAll('.opts-nav-link').forEach(l => l.classList.remove('active'));
+      document.querySelectorAll('.opts-section').forEach(s => s.classList.remove('active'));
+      link.classList.add('active');
+      $(`section-${section}`)?.classList.add('active');
+    });
+  });
+}
+
+// ── API Section ────────────────────────────────────────────────
+function initApiSection() {
+  // Token visibility toggle
+  $('toggle-token-vis')?.addEventListener('click', () => {
+    const input = $('github-token');
+    if (!input) return;
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+
+  // Test connection
+  $('btn-test-token')?.addEventListener('click', async () => {
+    const token = $('github-token')?.value?.trim();
+    const endpoint = $('api-endpoint')?.value?.trim() || 'https://models.github.ai/inference';
+    const model = $('default-model')?.value || 'openai/gpt-4o-mini';
+    const statusEl = $('token-status');
+
+    if (!token) {
+      if (statusEl) { statusEl.innerHTML = `${S2AI_ICONS.icon('alert-triangle', 14)} Please enter a token first`; statusEl.className = 'opts-token-status err'; }
+      return;
+    }
+
+    if (statusEl) { statusEl.innerHTML = `${S2AI_ICONS.icon('loader', 14)} Testing connection…`; statusEl.className = 'opts-token-status loading'; refreshIcons(statusEl); }
+
+    try {
+      const res = await fetch(`${endpoint}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: 'Say "OK" only.' }],
+          max_tokens: 10
+        })
+      });
+
+      if (res.ok) {
+        if (statusEl) { statusEl.innerHTML = `${S2AI_ICONS.icon('check-circle', 14)} Connection successful! API token is valid.`; statusEl.className = 'opts-token-status ok'; }
+      } else {
+        const err = await res.text();
+        if (statusEl) { statusEl.innerHTML = `${S2AI_ICONS.icon('x', 14)} Error ${res.status}: ${escapeHtml(err.slice(0, 100))}`; statusEl.className = 'opts-token-status err'; }
+      }
+    } catch (e) {
+      if (statusEl) { statusEl.innerHTML = `${S2AI_ICONS.icon('x', 14)} Connection failed: ${escapeHtml(e.message)}`; statusEl.className = 'opts-token-status err'; }
+    }
+  });
+}
+
+// ── Load Settings into UI ──────────────────────────────────────
+async function loadSettings() {
+  const s = await new Promise(r => chrome.storage.sync.get({
+    githubToken: '',
+    endpoint: 'https://models.github.ai/inference',
+    model: 'openai/gpt-4.1-mini',
+    streamingEnabled: true,
+    pageContextDefault: false,
+    autoSaveHistory: true,
+    showInsightsBar: true,
+    historyLimit: 150,
+    compareModelA: 'openai/gpt-4.1',
+    compareModelB: 'meta/Llama-4-Scout-17B-16E-Instruct'
+  }, r));
+
+  setValue('github-token', s.githubToken);
+  setValue('api-endpoint', s.endpoint);
+  setValue('default-model', s.model);
+  setChecked('opt-streaming', s.streamingEnabled);
+  setChecked('opt-pagecontext', s.pageContextDefault);
+  setChecked('opt-autosave', s.autoSaveHistory);
+  setChecked('opt-insights', s.showInsightsBar);
+  setValue('opt-history-limit', String(s.historyLimit));
+  setValue('compare-model-a', s.compareModelA);
+  setValue('compare-model-b', s.compareModelB);
+}
+
+function setValue(id, val) {
+  const el = $(id);
+  if (el) el.value = val;
+}
+
+function setChecked(id, val) {
+  const el = $(id);
+  if (el) el.checked = val;
+}
+
+function getChecked(id) {
+  return $(id)?.checked ?? false;
+}
+
+// ── Save All Settings ──────────────────────────────────────────
+async function saveAllSettings() {
+  const settings = {
+    githubToken: $('github-token')?.value?.trim() || '',
+    endpoint: $('api-endpoint')?.value?.trim() || 'https://models.github.ai/inference',
+    model: $('default-model')?.value || 'openai/gpt-4.1-mini',
+    streamingEnabled: getChecked('opt-streaming'),
+    pageContextDefault: getChecked('opt-pagecontext'),
+    autoSaveHistory: getChecked('opt-autosave'),
+    showInsightsBar: getChecked('opt-insights'),
+    historyLimit: parseInt($('opt-history-limit')?.value || '150'),
+    compareModelA: $('compare-model-a')?.value || 'openai/gpt-4.1',
+    compareModelB: $('compare-model-b')?.value || 'meta/Llama-4-Scout-17B-16E-Instruct'
+  };
+
+  await new Promise(r => chrome.storage.sync.set(settings, r));
+  showToast(`${S2AI_ICONS.icon('check-circle', 14)} Settings saved!`);
+}
+
+// ── Templates Section ──────────────────────────────────────────
+let templates = [];
+let editingId = null;
+
+async function loadTemplates() {
+  const data = await new Promise(r => chrome.storage.sync.get({ promptTemplates: [] }, r));
+  const userTemplates = data.promptTemplates;
+  const userIds = new Set(userTemplates.map(t => t.id));
+  const defaults = DEFAULT_TEMPLATES.filter(t => !userIds.has(t.id));
+  templates = [...userTemplates, ...defaults];
+  renderTemplates();
+}
+
+function renderTemplates() {
+  const list = $('templates-list');
+  if (!list) return;
+
+  if (!templates.length) {
+    list.innerHTML = '<div class="opts-empty-templates">No templates yet. Click "+ New Template" to create one.</div>';
+    return;
+  }
+
+  list.innerHTML = templates.map(t => `
+    <div class="opts-template-item" data-id="${escapeHtml(t.id)}">
+      <div class="opts-template-icon">${S2AI_ICONS.icon(t.icon || 'zap', 18)}</div>
+      <div class="opts-template-info">
+        <div class="opts-template-name">${escapeHtml(t.name)}</div>
+        <div class="opts-template-preview">${escapeHtml(t.body?.slice(0, 80) || '')}</div>
+        <div style="margin-top:4px">
+          <span class="opts-template-badge">${escapeHtml(t.category || 'custom')}</span>
+          ${t.isDefault ? '<span class="opts-template-default-badge">  (built-in)</span>' : ''}
+        </div>
+      </div>
+      <div class="opts-template-actions">
+        <button class="opts-tpl-btn btn-edit-tpl" data-id="${escapeHtml(t.id)}">Edit</button>
+        ${!t.isDefault ? `<button class="opts-tpl-btn opts-tpl-btn--delete btn-delete-tpl" data-id="${escapeHtml(t.id)}">${S2AI_ICONS.icon('x', 12)}</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  refreshIcons(list);
+
+  list.querySelectorAll('.btn-edit-tpl').forEach(btn => {
+    btn.addEventListener('click', () => openTemplateEditor(btn.dataset.id));
+  });
+
+  list.querySelectorAll('.btn-delete-tpl').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this template?')) return;
+      await deleteUserTemplate(btn.dataset.id);
+    });
+  });
+}
+
+function openTemplateEditor(id = null) {
+  const editor = $('template-editor');
+  const editorTitle = $('editor-title');
+  if (!editor) return;
+
+  editingId = id;
+
+  if (id) {
+    const tpl = templates.find(t => t.id === id);
+    if (!tpl) return;
+    if (editorTitle) editorTitle.textContent = `Edit: ${tpl.name}`;
+    setValue('tpl-name', tpl.name);
+    setValue('tpl-icon', tpl.icon || 'zap');
+    setValue('tpl-body', tpl.body || '');
+    setValue('tpl-category', tpl.category || 'custom');
+    setValue('tpl-editing-id', tpl.id);
+  } else {
+    if (editorTitle) editorTitle.textContent = 'New Template';
+    setValue('tpl-name', '');
+    setValue('tpl-icon', 'zap');
+    setValue('tpl-body', '{selection}');
+    setValue('tpl-category', 'custom');
+    setValue('tpl-editing-id', '');
+  }
+
+  editor.style.display = 'block';
+  editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('tpl-name')?.focus();
+}
+
+function closeTemplateEditor() {
+  const editor = $('template-editor');
+  if (editor) editor.style.display = 'none';
+  editingId = null;
+}
+
+async function saveTemplate() {
+  const name = $('tpl-name')?.value?.trim();
+  const icon = $('tpl-icon')?.value?.trim() || 'zap';
+  const body = $('tpl-body')?.value?.trim();
+  const category = $('tpl-category')?.value || 'custom';
+  const editId = $('tpl-editing-id')?.value;
+
+  if (!name) { alert('Please enter a template name.'); return; }
+  if (!body) { alert('Please enter a template body.'); return; }
+
+  const data = await new Promise(r => chrome.storage.sync.get({ promptTemplates: [] }, r));
+  let userTemplates = data.promptTemplates;
+
+  if (editId) {
+    const idx = userTemplates.findIndex(t => t.id === editId);
+    const updatedTpl = { id: editId, name, icon, body, category, isDefault: false };
+    if (idx >= 0) {
+      userTemplates[idx] = updatedTpl;
+    } else {
+      userTemplates.unshift(updatedTpl);
+    }
+  } else {
+    userTemplates.unshift({
+      id: `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      name, icon, body, category, isDefault: false
+    });
+  }
+
+  await new Promise(r => chrome.storage.sync.set({ promptTemplates: userTemplates }, r));
+  closeTemplateEditor();
+  await loadTemplates();
+  showToast(`${S2AI_ICONS.icon('check-circle', 14)} Template saved!`);
+}
+
+async function deleteUserTemplate(id) {
+  const data = await new Promise(r => chrome.storage.sync.get({ promptTemplates: [] }, r));
+  const userTemplates = data.promptTemplates.filter(t => t.id !== id);
+  await new Promise(r => chrome.storage.sync.set({ promptTemplates: userTemplates }, r));
+  await loadTemplates();
+  showToast(`${S2AI_ICONS.icon('trash-2', 14)} Template deleted`);
+}
+
+function initTemplatesSection() {
+  $('btn-new-template')?.addEventListener('click', () => openTemplateEditor(null));
+  $('btn-save-template')?.addEventListener('click', saveTemplate);
+  $('btn-cancel-template')?.addEventListener('click', closeTemplateEditor);
+}
+
+// ── Data Section ───────────────────────────────────────────────
+async function loadDataStats() {
+  const statsEl = $('data-stats');
+  if (!statsEl) return;
+
+  const [histData, kbData, tplData] = await Promise.all([
+    new Promise(r => chrome.runtime.sendMessage({ type: 'GET_HISTORY', filter: {} }, r)),
+    new Promise(r => chrome.runtime.sendMessage({ type: 'GET_KB', query: '' }, r)),
+    new Promise(r => chrome.storage.sync.get({ promptTemplates: [] }, r))
+  ]);
+
+  const histCount = histData?.history?.length ?? 0;
+  const kbCount = kbData?.knowledgeBase?.length ?? 0;
+  const tplCount = tplData.promptTemplates?.length ?? 0;
+
+  statsEl.innerHTML = `
+    <strong>Storage Usage:</strong><br>
+    ${S2AI_ICONS.icon('scroll-text', 12)} History: ${histCount} entries<br>
+    ${S2AI_ICONS.icon('book-open', 12)} Knowledge Base: ${kbCount} snippets<br>
+    ${S2AI_ICONS.icon('zap', 12)} Custom Templates: ${tplCount} user-created
+  `;
+  refreshIcons(statsEl);
+}
+
+function initDataSection() {
+  $('btn-clear-history-opts')?.addEventListener('click', async () => {
+    if (!confirm('Clear all query history? This cannot be undone.')) return;
+    await new Promise(r => chrome.runtime.sendMessage({ type: 'CLEAR_HISTORY' }, r));
+    await loadDataStats();
+    showToast(`${S2AI_ICONS.icon('trash-2', 14)} History cleared`);
+  });
+
+  $('btn-clear-kb')?.addEventListener('click', async () => {
+    if (!confirm('Clear entire Knowledge Base? This cannot be undone.')) return;
+    await new Promise(r => chrome.storage.local.set({ knowledgeBase: [] }, r));
+    await loadDataStats();
+    showToast(`${S2AI_ICONS.icon('trash-2', 14)} Knowledge Base cleared`);
+  });
+
+  $('btn-clear-templates')?.addEventListener('click', async () => {
+    if (!confirm('Reset all custom templates back to defaults? Your user-created templates will be deleted.')) return;
+    await new Promise(r => chrome.storage.sync.set({ promptTemplates: [] }, r));
+    await loadTemplates();
+    await loadDataStats();
+    showToast(`${S2AI_ICONS.icon('refresh-cw', 14)} Templates reset to defaults`);
+  });
+
+  $('btn-reset-all')?.addEventListener('click', async () => {
+    if (!confirm('Reset ALL settings to default? This includes your API token, model selection, and all preferences.')) return;
+    await new Promise(r => chrome.storage.sync.clear(r));
+    await loadSettings();
+    showToast(`${S2AI_ICONS.icon('alert-triangle', 14)} All settings reset`);
+  });
+}
+
+// ── Save Bar ──────────────────────────────────────────────────
+function initSaveBar() {
+  $('btn-save-all')?.addEventListener('click', saveAllSettings);
+}
+
+// ── Init ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  initNavigation();
+  initApiSection();
+  initTemplatesSection();
+  initDataSection();
+  initSaveBar();
+
+  await Promise.all([
+    loadSettings(),
+    loadTemplates(),
+    loadDataStats()
+  ]);
+
+  refreshIcons();
+});
