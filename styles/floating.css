@@ -5,44 +5,54 @@
 
 /* ── CSS Variables ─────────────────────────────────────────── */
 :root {
-  --s2ai-bg: #ffffff;
-  --s2ai-bg2: #f8f9fa;
-  --s2ai-bg3: #f1f3f5;
-  --s2ai-border: #e2e8f0;
-  --s2ai-border2: #cbd5e0;
-  --s2ai-text: #1a202c;
-  --s2ai-text2: #4a5568;
-  --s2ai-text3: #718096;
-  --s2ai-accent: #4f46e5;
-  --s2ai-accent-hover: #4338ca;
-  --s2ai-accent-light: #eef2ff;
+  --s2ai-bg: #E0F0EE;
+  --s2ai-bg2: #D0EDE8;
+  --s2ai-bg3: #C0E5DE;
+  --s2ai-border: #B8C8C8;
+  --s2ai-border2: #98A8A8;
+  --s2ai-text: #080E0F;
+  --s2ai-text2: #2D3F3F;
+  --s2ai-text3: #5B7272;
+  --s2ai-accent: #1A9E88;
+  --s2ai-accent-hover: #127A68;
+  --s2ai-accent-light: #D6F0EB;
   --s2ai-success: #10b981;
   --s2ai-error: #ef4444;
   --s2ai-warning: #f59e0b;
-  --s2ai-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 1px 6px rgba(0,0,0,0.06);
-  --s2ai-shadow-lg: 0 12px 40px rgba(0,0,0,0.15);
+  --s2ai-shadow: 0 4px 24px rgba(8,14,15,0.12), 0 1px 6px rgba(8,14,15,0.06);
+  --s2ai-shadow-lg: 0 12px 40px rgba(8,14,15,0.15);
   --s2ai-radius: 12px;
   --s2ai-radius-sm: 7px;
   --s2ai-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
   --s2ai-panel-w: 380px;
   --s2ai-panel-max-h: 70vh;
   --s2ai-transition: 0.18s ease;
+
+  --slate-1: #E0E8E8;
+  --slate-2: #B8C8C8;
+  --slate-3: #5B7272;
+  --slate-4: #2D3F3F;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --s2ai-bg: #1e1e2e;
-    --s2ai-bg2: #181825;
-    --s2ai-bg3: #2a2a3e;
-    --s2ai-border: #313244;
-    --s2ai-border2: #45475a;
-    --s2ai-text: #cdd6f4;
-    --s2ai-text2: #a6adc8;
-    --s2ai-text3: #7f849c;
-    --s2ai-accent: #7c3aed;
-    --s2ai-accent-hover: #6d28d9;
-    --s2ai-accent-light: #2d1b69;
-    --s2ai-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 1px 6px rgba(0,0,0,0.2);
+    --s2ai-bg: #111E20;
+    --s2ai-bg2: #0A1415;
+    --s2ai-bg3: #162628;
+    --s2ai-border: #1F2F2F;
+    --s2ai-border2: #2F4242;
+    --s2ai-text: #D8EBE8;
+    --s2ai-text2: #A8BCBC;
+    --s2ai-text3: #7C9898;
+    --s2ai-accent: #1A9E88;
+    --s2ai-accent-hover: #22B89E;
+    --s2ai-accent-light: rgba(26, 158, 136, 0.12);
+    --s2ai-shadow: 0 4px 24px rgba(0,0,0,0.50), 0 1px 6px rgba(0,0,0,0.28);
+
+    --slate-1: #1F2F2F;
+    --slate-2: #2F4242;
+    --slate-3: #7C9898;
+    --slate-4: #A8BCBC;
   }
 }
 
@@ -151,6 +161,12 @@
   font-weight: 700;
   text-transform: uppercase;
 }
+
+/* ── Slate utility helpers ─────────────────────────────────── */
+.s2ai-slate-text  { color: var(--slate-4); }
+.s2ai-slate-text2 { color: var(--slate-3); }
+.s2ai-slate-bg    { background: var(--slate-1); }
+.s2ai-slate-border { border-color: var(--slate-2); }
 
 /* ── Menu Actions ────────────────────────────────────────────── */
 .s2ai-menu-actions {
@@ -327,12 +343,12 @@
   border: 1px solid var(--s2ai-border);
 }
 
-.s2ai-type-chip--code { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
-.s2ai-type-chip--question { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.s2ai-type-chip--code { background: #D6F0EB; color: #0F5E4F; border-color: #8CD4C4; }
+.s2ai-type-chip--question { background: #D6EBF0; color: #155E6D; border-color: #8CC8D4; }
 
 @media (prefers-color-scheme: dark) {
-  .s2ai-type-chip--code { background: #14532d; color: #86efac; border-color: #166534; }
-  .s2ai-type-chip--question { background: #1e3a5f; color: #93c5fd; border-color: #1d4ed8; }
+  .s2ai-type-chip--code { background: #0F3D33; color: #7EE8D3; border-color: #1A9E88; }
+  .s2ai-type-chip--question { background: #0F333D; color: #7ED3E8; border-color: #1A8E9E; }
 }
 
 .s2ai-panel-controls {
@@ -529,7 +545,7 @@
 
 .s2ai-custom-textarea:focus {
   border-color: var(--s2ai-accent);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 0 3px rgba(26, 158, 136, 0.12);
 }
 
 .s2ai-send-btn {
@@ -575,7 +591,7 @@
 
 .s2ai-followup-input:focus {
   border-color: var(--s2ai-accent);
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.12);
+  box-shadow: 0 0 0 2px rgba(26, 158, 136, 0.12);
 }
 
 .s2ai-followup-send {

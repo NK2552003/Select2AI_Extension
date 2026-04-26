@@ -1,10 +1,11 @@
-# Fix History & Knowledge Base UI Bugs
+# Theme Toggle Implementation TODO
 
-- [x] Analyze files and identify issues
-- [x] Get user approval for plan
-- [x] Fix `popup.js` `renderHistory()` — add missing `</div>` to close `.list-item`
-- [x] Fix `popup.js` `renderKB()` — add missing `</div>` to close `.list-item`
-- [x] Fix `popup.js` `showDetail()` — properly close all `<div>` section tags
-- [x] Fix `popup.html` — add `position: relative` to `body` CSS
-- [x] Verify all edits are correct
+## Steps
+1. [x] Update `popup.html` — add theme selector and CSS overrides
+2. [x] Update `popup.js` — load/save/apply theme
+3. [x] Update `options/options.html` — add theme selector in Behavior section
+4. [x] Update `options/options.js` — load/save/apply theme
+5. [x] Update `options/options.css` — add CSS overrides
+6. [x] Update `background.js` — add theme default
+
 
