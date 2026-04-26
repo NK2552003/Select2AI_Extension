@@ -23,7 +23,7 @@ function refreshIcons(root = document) {
   if (window.lucide) lucide.createIcons({ attrs: { 'stroke-width': 2 }, nodes: [root] });
 }
 
-function showToast(msg = '<i data-lucide="check-circle" width="14" height="14"></i> Settings saved!') {
+function showToast(msg = `${S2AI_ICONS.icon('check-circle', 14)} Settings saved!`) {
   const toast = $('save-toast');
   if (!toast) return;
   toast.innerHTML = msg;

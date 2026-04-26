@@ -42,10 +42,10 @@ export function createQueryExecutor(options) {
     const useStreaming = settings.streamingEnabled !== false;
 
     try {
-      if (useStreaming) {
-        await executeStreaming(lastPromptRef.value, pageCtx, convHistory, panel);
+    if (useStreaming) {
+        await executeStreaming(lastPromptRef.value, pageCtx, convHistory, panel, callbacks);
       } else {
-        await executeNonStreaming(lastPromptRef.value, pageCtx, convHistory, panel);
+        await executeNonStreaming(lastPromptRef.value, pageCtx, convHistory, panel, callbacks);
       }
     } catch (e) {
       showError(e.message, panel);
@@ -54,7 +54,7 @@ export function createQueryExecutor(options) {
     isProcessing = false;
   }
 
-  function executeStreaming(prompt, pageCtx, convHistory, panelEl) {
+  function executeStreaming(prompt, pageCtx, convHistory, panelEl, callbacks) {
     const streamId = `stream_${Date.now()}`;
     streamingChunksRef[streamId] = '';
 
@@ -113,7 +113,7 @@ export function createQueryExecutor(options) {
     });
   }
 
-  function executeNonStreaming(prompt, pageCtx, convHistory, panelEl) {
+  function executeNonStreaming(prompt, pageCtx, convHistory, panelEl, callbacks) {
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({
         type: 'QUERY_AI',

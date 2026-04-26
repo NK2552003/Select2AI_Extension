@@ -187,14 +187,15 @@ export const ICON_MAP = {
 
 /**
  * Get raw SVG string for a Lucide icon
- * @param {string} name - Icon name
+ * @param {string} name - Icon name or semantic key
  * @param {number} [size=16] - Icon size in pixels
  * @returns {string} SVG HTML string
  */
 export function getIconSvg(name, size = 16) {
-  const path = PATHS[name];
+  const iconName = ICON_MAP[name] || name;
+  const path = PATHS[iconName];
   if (!path) {
-    console.warn(`[S2AI] Unknown icon: ${name}`);
+    console.warn(`[S2AI] Unknown icon: ${name} (resolved: ${iconName})`);
     return '';
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="s2ai-icon" aria-hidden="true">${path}</svg>`;
@@ -202,14 +203,15 @@ export function getIconSvg(name, size = 16) {
 
 /**
  * Get an SVG element for a Lucide icon
- * @param {string} name - Icon name
+ * @param {string} name - Icon name or semantic key
  * @param {number} [size=16] - Icon size in pixels
  * @returns {SVGSVGElement|null}
  */
 export function getIconElement(name, size = 16) {
-  const path = PATHS[name];
+  const iconName = ICON_MAP[name] || name;
+  const path = PATHS[iconName];
   if (!path) {
-    console.warn(`[S2AI] Unknown icon: ${name}`);
+    console.warn(`[S2AI] Unknown icon: ${name} (resolved: ${iconName})`);
     return null;
   }
   const wrapper = document.createElement('div');
