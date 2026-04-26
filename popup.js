@@ -69,7 +69,7 @@ function initTabs() {
 async function loadSettings() {
   const s = await new Promise(r =>
     chrome.storage.sync.get({
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4.1-mini',
       streamingEnabled: true,
       pageContextDefault: false
     }, r)

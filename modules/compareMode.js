@@ -66,13 +66,16 @@ function sendStreamQuery(params) {
  */
 export function getComparableModels() {
   return [
-    { id: 'openai/gpt-4o-mini', label: 'GPT-4o Mini' },
-    { id: 'openai/gpt-4o', label: 'GPT-4o' },
-    { id: 'meta/Meta-Llama-3.1-70B-Instruct', label: 'Llama 3.1 70B' },
-    { id: 'meta/Meta-Llama-3.1-8B-Instruct', label: 'Llama 3.1 8B' },
-    { id: 'mistral-ai/Mistral-7B-Instruct-v0.3', label: 'Mistral 7B' },
-    { id: 'microsoft/Phi-3.5-mini-instruct', label: 'Phi-3.5 Mini' },
-    { id: 'cohere/Cohere-command-r-plus-08-2024', label: 'Command R+' }
+    { id: 'openai/gpt-4.1-mini', label: 'GPT-4.1 Mini' },
+    { id: 'openai/gpt-4.1', label: 'GPT-4.1' },
+    { id: 'openai/gpt-5', label: 'GPT-5' },
+    { id: 'openai/gpt-5-chat', label: 'GPT-5 Chat' },
+    { id: 'deepseek/DeepSeek-V3-0324', label: 'DeepSeek V3' },
+    { id: 'meta/Llama-4-Scout-17B-16E-Instruct', label: 'Llama 4 Scout' },
+    { id: 'xai/grok-3', label: 'Grok 3' },
+    { id: 'xai/grok-3-mini', label: 'Grok 3 Mini' },
+    { id: 'mistral-ai/mistral-medium-2505', label: 'Mistral Medium' },
+    { id: 'mistral-ai/mistral-small-2503', label: 'Mistral Small' }
   ];
 }
 

@@ -98,14 +98,14 @@ async function loadSettings() {
   const s = await new Promise(r => chrome.storage.sync.get({
     githubToken: '',
     endpoint: 'https://models.github.ai/inference',
-    model: 'openai/gpt-4o-mini',
+    model: 'openai/gpt-4.1-mini',
     streamingEnabled: true,
     pageContextDefault: false,
     autoSaveHistory: true,
     showInsightsBar: true,
     historyLimit: 150,
-    compareModelA: 'openai/gpt-4o-mini',
-    compareModelB: 'meta/Meta-Llama-3.1-70B-Instruct'
+    compareModelA: 'openai/gpt-4.1',
+    compareModelB: 'meta/Llama-4-Scout-17B-16E-Instruct'
   }, r));
 
   setValue('github-token', s.githubToken);
@@ -139,14 +139,14 @@ async function saveAllSettings() {
   const settings = {
     githubToken: $('github-token')?.value?.trim() || '',
     endpoint: $('api-endpoint')?.value?.trim() || 'https://models.github.ai/inference',
-    model: $('default-model')?.value || 'openai/gpt-4o-mini',
+    model: $('default-model')?.value || 'openai/gpt-4.1-mini',
     streamingEnabled: getChecked('opt-streaming'),
     pageContextDefault: getChecked('opt-pagecontext'),
     autoSaveHistory: getChecked('opt-autosave'),
     showInsightsBar: getChecked('opt-insights'),
     historyLimit: parseInt($('opt-history-limit')?.value || '150'),
-    compareModelA: $('compare-model-a')?.value || 'openai/gpt-4o-mini',
-    compareModelB: $('compare-model-b')?.value || 'meta/Meta-Llama-3.1-70B-Instruct'
+    compareModelA: $('compare-model-a')?.value || 'openai/gpt-4.1',
+    compareModelB: $('compare-model-b')?.value || 'meta/Llama-4-Scout-17B-16E-Instruct'
   };
 
   await new Promise(r => chrome.storage.sync.set(settings, r));

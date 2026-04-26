@@ -40,11 +40,11 @@
     settings = await new Promise(r =>
       chrome.storage.sync.get({
         githubToken: '',
-        model: 'openai/gpt-4o-mini',
+        model: 'openai/gpt-4.1-mini',
         streamingEnabled: true,
         pageContextDefault: false,
-        compareModelA: 'openai/gpt-4o-mini',
-        compareModelB: 'meta/Meta-Llama-3.1-70B-Instruct'
+        compareModelA: 'openai/gpt-4.1',
+        compareModelB: 'meta/Llama-4-Scout-17B-16E-Instruct'
       }, r)
     );
     pageContextEnabled = settings.pageContextDefault;
@@ -634,7 +634,7 @@
       </div>
 
       <div class="s2ai-panel-footer">
-        <span class="s2ai-model-indicator">${escapeHtml(settings.model || 'gpt-4o-mini')}</span>
+        <span class="s2ai-model-indicator">${escapeHtml(settings.model || 'gpt-4.1-mini')}</span>
         ${pageContextEnabled ? '<span class="s2ai-context-indicator">📄 Page context</span>' : ''}
         <span class="s2ai-powered">⚡ GitHub Models</span>
       </div>

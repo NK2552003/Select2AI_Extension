@@ -137,7 +137,7 @@ async function handleAIQuery(message, sender, sendResponse) {
     const { prompt, model, systemPrompt, pageContext } = message;
     const settings = await getSettings();
     const token = settings.githubToken;
-    const selectedModel = model || settings.model || 'openai/gpt-4o-mini';
+    const selectedModel = model || settings.model || 'openai/gpt-4.1-mini';
     const endpoint = settings.endpoint || 'https://models.github.ai/inference';
 
     if (!token) {
@@ -204,7 +204,7 @@ async function handleStreamingQuery(message, sender, sendResponse) {
     const { prompt, model, systemPrompt, pageContext, tabId } = message;
     const settings = await getSettings();
     const token = settings.githubToken;
-    const selectedModel = model || settings.model || 'openai/gpt-4o-mini';
+    const selectedModel = model || settings.model || 'openai/gpt-4.1-mini';
     const endpoint = settings.endpoint || 'https://models.github.ai/inference';
 
     if (!token) {
@@ -322,7 +322,7 @@ async function getSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get({
       githubToken: '',
-      model: 'openai/gpt-4o-mini',
+      model: 'openai/gpt-4.1-mini',
       endpoint: 'https://models.github.ai/inference',
       streamingEnabled: true,
       pageContextDefault: false

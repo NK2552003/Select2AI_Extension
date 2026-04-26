@@ -63,21 +63,24 @@
             <label for="default-model">Default Model</label>
             <select id="default-model">
               <optgroup label="OpenAI">
-                <option value="openai/gpt-4o-mini">GPT-4o Mini (Fast, efficient)</option>
-                <option value="openai/gpt-4o">GPT-4o (Most capable)</option>
+                <option value="openai/gpt-4.1-mini">GPT-4.1 Mini (Fast, efficient)</option>
+                <option value="openai/gpt-4.1">GPT-4.1</option>
+                <option value="openai/gpt-5">GPT-5</option>
+                <option value="openai/gpt-5-chat">GPT-5 Chat</option>
+              </optgroup>
+              <optgroup label="DeepSeek">
+                <option value="deepseek/DeepSeek-V3-0324">DeepSeek V3</option>
               </optgroup>
               <optgroup label="Meta Llama">
-                <option value="meta/Meta-Llama-3.1-70B-Instruct">Llama 3.1 70B</option>
-                <option value="meta/Meta-Llama-3.1-8B-Instruct">Llama 3.1 8B (Fast)</option>
+                <option value="meta/Llama-4-Scout-17B-16E-Instruct">Llama 4 Scout</option>
+              </optgroup>
+              <optgroup label="xAI">
+                <option value="xai/grok-3">Grok 3</option>
+                <option value="xai/grok-3-mini">Grok 3 Mini</option>
               </optgroup>
               <optgroup label="Mistral AI">
-                <option value="mistral-ai/Mistral-7B-Instruct-v0.3">Mistral 7B</option>
-              </optgroup>
-              <optgroup label="Microsoft">
-                <option value="microsoft/Phi-3.5-mini-instruct">Phi-3.5 Mini</option>
-              </optgroup>
-              <optgroup label="Cohere">
-                <option value="cohere/Cohere-command-r-plus-08-2024">Command R+</option>
+                <option value="mistral-ai/mistral-medium-2505">Mistral Medium</option>
+                <option value="mistral-ai/mistral-small-2503">Mistral Small</option>
               </optgroup>
             </select>
           </div>
@@ -263,26 +266,32 @@
             <div class="opts-field">
               <label for="compare-model-a">Model A (Left)</label>
               <select id="compare-model-a">
-                <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
-                <option value="openai/gpt-4o">GPT-4o</option>
-                <option value="meta/Meta-Llama-3.1-70B-Instruct">Llama 3.1 70B</option>
-                <option value="meta/Meta-Llama-3.1-8B-Instruct">Llama 3.1 8B</option>
-                <option value="mistral-ai/Mistral-7B-Instruct-v0.3">Mistral 7B</option>
-                <option value="microsoft/Phi-3.5-mini-instruct">Phi-3.5 Mini</option>
-                <option value="cohere/Cohere-command-r-plus-08-2024">Command R+</option>
+                <option value="openai/gpt-4.1-mini">GPT-4.1 Mini</option>
+                <option value="openai/gpt-4.1" selected>GPT-4.1</option>
+                <option value="openai/gpt-5">GPT-5</option>
+                <option value="openai/gpt-5-chat">GPT-5 Chat</option>
+                <option value="deepseek/DeepSeek-V3-0324">DeepSeek V3</option>
+                <option value="meta/Llama-4-Scout-17B-16E-Instruct">Llama 4 Scout</option>
+                <option value="xai/grok-3">Grok 3</option>
+                <option value="xai/grok-3-mini">Grok 3 Mini</option>
+                <option value="mistral-ai/mistral-medium-2505">Mistral Medium</option>
+                <option value="mistral-ai/mistral-small-2503">Mistral Small</option>
               </select>
             </div>
             <div class="opts-compare-vs">VS</div>
             <div class="opts-field">
               <label for="compare-model-b">Model B (Right)</label>
               <select id="compare-model-b">
-                <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
-                <option value="openai/gpt-4o">GPT-4o</option>
-                <option value="meta/Meta-Llama-3.1-70B-Instruct" selected>Llama 3.1 70B</option>
-                <option value="meta/Meta-Llama-3.1-8B-Instruct">Llama 3.1 8B</option>
-                <option value="mistral-ai/Mistral-7B-Instruct-v0.3">Mistral 7B</option>
-                <option value="microsoft/Phi-3.5-mini-instruct">Phi-3.5 Mini</option>
-                <option value="cohere/Cohere-command-r-plus-08-2024">Command R+</option>
+                <option value="openai/gpt-4.1-mini">GPT-4.1 Mini</option>
+                <option value="openai/gpt-4.1">GPT-4.1</option>
+                <option value="openai/gpt-5">GPT-5</option>
+                <option value="openai/gpt-5-chat">GPT-5 Chat</option>
+                <option value="deepseek/DeepSeek-V3-0324">DeepSeek V3</option>
+                <option value="meta/Llama-4-Scout-17B-16E-Instruct" selected>Llama 4 Scout</option>
+                <option value="xai/grok-3">Grok 3</option>
+                <option value="xai/grok-3-mini">Grok 3 Mini</option>
+                <option value="mistral-ai/mistral-medium-2505">Mistral Medium</option>
+                <option value="mistral-ai/mistral-small-2503">Mistral Small</option>
               </select>
             </div>
           </div>
