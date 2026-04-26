@@ -64,7 +64,7 @@ export function detectContentType(text) {
 
 function scoreMath(text) {
   const mathPatterns = [
-    /[\∫∑∏√∂∇∀∃∈∉⊆⊇∪∩⊕⊗±×÷]/,
+    /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u,
     /\\\[.*?\\\]|\$\$.*?\$\$|\$[^$]+\$/s,
     /\b(sin|cos|tan|log|ln|lim|sum|int|det|max|min)\s*[\(\[]/i,
     /[a-z]\s*[=<>≤≥≠]\s*[0-9a-z\+\-\*\/\^\(\)]+/i,
@@ -183,26 +183,27 @@ export function getSuggestedActions(type) {
 
 /**
  * Get the label + icon for a given action key
+ * Icons are Lucide icon names (not emojis)
  */
 export function getActionMeta(actionKey) {
   const actions = {
-    'summarize':        { label: 'Summarize',         icon: '📝', category: 'general' },
-    'explain':          { label: 'Explain',            icon: '💡', category: 'general' },
-    'answer':           { label: 'Answer',             icon: '❓', category: 'general' },
-    'what-is':          { label: 'What is it?',        icon: '🔍', category: 'general' },
-    'custom':           { label: 'Custom Question',    icon: '✏️', category: 'general' },
-    'explain-code':     { label: 'Explain Code',       icon: '🔬', category: 'code' },
-    'find-bugs':        { label: 'Find Bugs',          icon: '🐛', category: 'code' },
-    'refactor':         { label: 'Refactor',           icon: '♻️', category: 'code' },
-    'add-comments':     { label: 'Add Comments',       icon: '💬', category: 'code' },
-    'convert-language': { label: 'Convert Language',   icon: '🔄', category: 'code' },
-    'translate':        { label: 'Translate…',         icon: '🌐', category: 'rewrite' },
-    'rewrite-pro':      { label: 'Rewrite: Professional', icon: '👔', category: 'rewrite' },
-    'rewrite-casual':   { label: 'Rewrite: Casual',    icon: '😊', category: 'rewrite' },
-    'rewrite-concise':  { label: 'Rewrite: Concise',   icon: '✂️', category: 'rewrite' },
-    'solve':            { label: 'Solve',              icon: '🧮', category: 'math' }
+    'summarize':        { label: 'Summarize',         icon: 'file-text', category: 'general' },
+    'explain':          { label: 'Explain',            icon: 'lightbulb', category: 'general' },
+    'answer':           { label: 'Answer',             icon: 'help-circle', category: 'general' },
+    'what-is':          { label: 'What is it?',        icon: 'search', category: 'general' },
+    'custom':           { label: 'Custom Question',    icon: 'edit-3', category: 'general' },
+    'explain-code':     { label: 'Explain Code',       icon: 'microscope', category: 'code' },
+    'find-bugs':        { label: 'Find Bugs',          icon: 'bug', category: 'code' },
+    'refactor':         { label: 'Refactor',           icon: 'refresh-cw', category: 'code' },
+    'add-comments':     { label: 'Add Comments',       icon: 'message-square', category: 'code' },
+    'convert-language': { label: 'Convert Language',   icon: 'repeat', category: 'code' },
+    'translate':        { label: 'Translate…',         icon: 'globe', category: 'rewrite' },
+    'rewrite-pro':      { label: 'Rewrite: Professional', icon: 'briefcase', category: 'rewrite' },
+    'rewrite-casual':   { label: 'Rewrite: Casual',    icon: 'smile', category: 'rewrite' },
+    'rewrite-concise':  { label: 'Rewrite: Concise',   icon: 'scissors', category: 'rewrite' },
+    'solve':            { label: 'Solve',              icon: 'calculator', category: 'math' }
   };
-  return actions[actionKey] || { label: actionKey, icon: '⚡', category: 'general' };
+  return actions[actionKey] || { label: actionKey, icon: 'zap', category: 'general' };
 }
 
 /**

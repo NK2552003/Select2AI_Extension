@@ -7,8 +7,8 @@ function $(id) { return document.getElementById(id); }
 
 function escapeHtml(str) {
   return String(str || '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    .replace(/&/g, '&amp;').replace(/</g, '<')
+    .replace(/>/g, '>').replace(/"/g, '"');
 }
 
 function formatDate(ts) {
@@ -33,6 +33,10 @@ function msg(type, data = {}) {
   });
 }
 
+function refreshIcons(root = document) {
+  if (window.lucide) lucide.createIcons({ attrs: { 'stroke-width': 2 }, nodes: [root] });
+}
+
 // ── Status Banner ─────────────────────────────────────────────
 async function checkStatus() {
   const banner = $('status-banner');
@@ -41,10 +45,10 @@ async function checkStatus() {
   );
 
   if (!settings.githubToken) {
-    banner.textContent = '⚠️ No API token set — click settings to configure';
+    banner.innerHTML = `${S2AI_ICONS.icon('alert-triangle', 12)} No API token set — click settings to configure`;
     banner.className = 'status-warn';
   } else {
-    banner.textContent = '✅ Ready — select text on any page to use Select2AI';
+    banner.innerHTML = `${S2AI_ICONS.icon('check-circle', 12)} Ready — select text on any page to use Select2AI`;
     banner.className = 'status-ok';
   }
 }
@@ -141,10 +145,10 @@ function renderHistory(items) {
   if (!items.length) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-icon">🕐</div>
+        <div class="empty-state-icon">${S2AI_ICONS.icon('clock', 36)}</div>
         <div class="empty-state-title">No history yet</div>
-        <div class="empty-state-text">Your AI query history will appear here</div>
-      </div>`;
+        <div class="empty-state-text">Your AI query history will appear here</div>`;
+    refreshIcons(container);
     return;
   }
 
@@ -160,10 +164,11 @@ function renderHistory(items) {
         <span class="list-item-url" title="${escapeHtml(item.url || '')}">
           ${escapeHtml(getHostname(item.url))}
         </span>
-        <button class="list-item-delete" data-id="${escapeHtml(item.id)}" title="Delete">✕</button>
+        <button class="list-item-delete" data-id="${escapeHtml(item.id)}" title="Delete">${S2AI_ICONS.icon('x', 12)}</button>
       </div>
-    </div>
   `).join('');
+
+  refreshIcons(container);
 
   // Click to view detail
   container.querySelectorAll('.list-item').forEach(el => {
@@ -219,10 +224,10 @@ function renderKB(items) {
   if (!items.length) {
     container.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-icon">📚</div>
+        <div class="empty-state-icon">${S2AI_ICONS.icon('book-open', 36)}</div>
         <div class="empty-state-title">Knowledge Base is empty</div>
-        <div class="empty-state-text">Use the 🔖 bookmark button on any AI response to save it here</div>
-      </div>`;
+        <div class="empty-state-text">Use the ${S2AI_ICONS.icon('bookmark', 12)} bookmark button on any AI response to save it here</div>`;
+    refreshIcons(container);
     return;
   }
 
@@ -238,10 +243,11 @@ function renderKB(items) {
         <span class="list-item-url" title="${escapeHtml(item.url || '')}">
           ${escapeHtml(getHostname(item.url))}
         </span>
-        <button class="list-item-delete" data-id="${escapeHtml(item.id)}" title="Remove from KB">✕</button>
+        <button class="list-item-delete" data-id="${escapeHtml(item.id)}" title="Remove from KB">${S2AI_ICONS.icon('x', 12)}</button>
       </div>
-    </div>
   `).join('');
+
+  refreshIcons(container);
 
   container.querySelectorAll('.list-item').forEach(el => {
     el.addEventListener('click', (e) => {
@@ -284,11 +290,9 @@ function showDetail(item, type) {
     <div>
       <div class="detail-section-label">Prompt / Query</div>
       <div class="detail-text">${escapeHtml(item.prompt || '')}</div>
-    </div>
     <div>
       <div class="detail-section-label">${label}</div>
       <div class="detail-text">${escapeHtml(content || '')}</div>
-    </div>
     <div>
       <div class="detail-section-label">Details</div>
       <div style="font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:3px">
@@ -297,7 +301,6 @@ function showDetail(item, type) {
         <span>Date: <strong>${new Date(item.timestamp || item.savedAt).toLocaleString()}</strong></span>
         ${item.url ? `<span>URL: <a href="${escapeHtml(item.url)}" target="_blank" style="color:var(--accent)">${escapeHtml(item.url.slice(0, 60))}</a></span>` : ''}
       </div>
-    </div>
     <div class="detail-actions">
       <button class="detail-action-btn" id="detail-copy">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
@@ -320,7 +323,7 @@ function showDetail(item, type) {
   $('detail-copy')?.addEventListener('click', () => {
     navigator.clipboard.writeText(content || '');
     const btn = $('detail-copy');
-    if (btn) { btn.textContent = '✅ Copied!'; setTimeout(() => { btn.innerHTML = '📋 Copy Response'; }, 1500); }
+    if (btn) { btn.innerHTML = `${S2AI_ICONS.icon('check-circle', 12)} Copied!`; setTimeout(() => { btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Response`; }, 1500); }
   });
 
   $('detail-save-kb')?.addEventListener('click', async () => {
@@ -328,7 +331,7 @@ function showDetail(item, type) {
       data: { snippet: item.response, prompt: item.prompt, action: item.action, url: item.url, title: item.title }
     });
     const btn = $('detail-save-kb');
-    if (btn) { btn.textContent = '✅ Saved!'; btn.disabled = true; }
+    if (btn) { btn.innerHTML = `${S2AI_ICONS.icon('check-circle', 12)} Saved!`; btn.disabled = true; }
     loadStats();
   });
 
@@ -382,4 +385,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadSettings(),
     loadStats()
   ]);
+
+  refreshIcons();
 });

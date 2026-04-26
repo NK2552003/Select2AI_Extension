@@ -5,12 +5,12 @@
 
 const STORAGE_KEY = 'promptTemplates';
 
-/** Default factory templates */
+/** Default factory templates - using Lucide icon names */
 export const DEFAULT_TEMPLATES = [
   {
     id: 'tpl_eli5',
     name: 'Explain Like I\'m 5',
-    icon: '👶',
+    icon: 'baby',
     body: 'Explain the following in the simplest terms possible, as if explaining to a 5-year-old:\n\n{selection}',
     category: 'explain',
     isDefault: true
@@ -18,7 +18,7 @@ export const DEFAULT_TEMPLATES = [
   {
     id: 'tpl_bullet',
     name: 'Key Bullet Points',
-    icon: '📌',
+    icon: 'list',
     body: 'Extract the key bullet points from the following text. Be concise:\n\n{selection}',
     category: 'summarize',
     isDefault: true
@@ -26,7 +26,7 @@ export const DEFAULT_TEMPLATES = [
   {
     id: 'tpl_critique',
     name: 'Critical Analysis',
-    icon: '🎯',
+    icon: 'target',
     body: 'Provide a critical analysis of the following, highlighting strengths, weaknesses, and areas for improvement:\n\n{selection}',
     category: 'analyze',
     isDefault: true
@@ -34,7 +34,7 @@ export const DEFAULT_TEMPLATES = [
   {
     id: 'tpl_context',
     name: 'Add Context',
-    icon: '🌍',
+    icon: 'globe',
     body: 'Explain the broader context and background of the following from the page "{title}" ({url}):\n\n{selection}',
     category: 'explain',
     isDefault: true
@@ -42,7 +42,7 @@ export const DEFAULT_TEMPLATES = [
   {
     id: 'tpl_counterarg',
     name: 'Counter Arguments',
-    icon: '⚖️',
+    icon: 'scale',
     body: 'What are the main counter-arguments or opposing perspectives to the following statement or idea?\n\n{selection}',
     category: 'analyze',
     isDefault: true
@@ -124,7 +124,7 @@ export function createBlankTemplate(name) {
   return {
     id: `tpl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     name: name || 'New Template',
-    icon: '⚡',
+    icon: 'zap',
     body: 'Your prompt here:\n\n{selection}',
     category: 'custom',
     isDefault: false
@@ -134,7 +134,7 @@ export function createBlankTemplate(name) {
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"');
 }

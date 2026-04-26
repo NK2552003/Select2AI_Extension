@@ -490,9 +490,9 @@
 
   <!-- Tabs -->
   <div class="popup-tabs">
-    <button class="popup-tab active" data-tab="home">🏠 Home</button>
-    <button class="popup-tab" data-tab="history">🕐 History</button>
-    <button class="popup-tab" data-tab="kb">📚 Knowledge Base</button>
+    <button class="popup-tab active" data-tab="home"><i data-lucide="home" width="12" height="12"></i> Home</button>
+    <button class="popup-tab" data-tab="history"><i data-lucide="clock" width="12" height="12"></i> History</button>
+    <button class="popup-tab" data-tab="kb"><i data-lucide="book-open" width="12" height="12"></i> Knowledge Base</button>
   </div>
 
   <!-- Tab: Home -->
@@ -543,24 +543,24 @@
       <div class="stat-card">
         <div class="stat-card-value" id="stat-history">—</div>
         <div class="stat-card-label">Queries</div>
-      </div>
+        </div>
       <div class="stat-card">
         <div class="stat-card-value" id="stat-kb">—</div>
         <div class="stat-card-label">Saved</div>
-      </div>
+        </div>
       <div class="stat-card">
         <div class="stat-card-value" id="stat-templates">—</div>
         <div class="stat-card-label">Templates</div>
-      </div>
+        </div>
     </div>
 
     <!-- Quick Actions -->
     <div class="quick-actions">
       <a class="quick-action-btn" id="btn-goto-options">
-        <span>⚙️</span><span>Configure API Token & Options</span>
+        <span><i data-lucide="settings" width="16" height="16"></i></span><span>Configure API Token & Options</span>
       </a>
       <a class="quick-action-btn" id="btn-goto-templates">
-        <span>⚡</span><span>Manage Custom Templates</span>
+        <span><i data-lucide="zap" width="16" height="16"></i></span><span>Manage Custom Templates</span>
       </a>
     </div>
   </div>
@@ -572,27 +572,27 @@
       <button class="tab-clear-btn" id="btn-clear-history">Clear All</button>
     </div>
     <div class="list-container" id="history-list"></div>
-  </div>
-
+</div>
   <!-- Tab: Knowledge Base -->
   <div class="tab-content" id="tab-kb">
     <div class="tab-toolbar">
       <input class="tab-search" id="kb-search" placeholder="Search knowledge base…" />
     </div>
     <div class="list-container" id="kb-list"></div>
-  </div>
-
+</div>
   <!-- Detail Overlay (shared for history + KB) -->
   <div id="detail-overlay">
     <div class="detail-header">
       <button class="detail-back-btn" id="detail-back">
-        ← Back
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back
       </button>
       <div class="detail-title" id="detail-title">Detail</div>
-    </div>
+      </div>
     <div class="detail-body" id="detail-body"></div>
   </div>
-
+  <script src="vendor/lucide.min.js"></script>
+  <script src="scripts/icons.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

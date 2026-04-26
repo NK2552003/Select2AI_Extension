@@ -58,6 +58,8 @@
     {
       "resources": [
         "vendor/gsap.min.js",
+        "vendor/lucide.min.js",
+        "scripts/icons.js",
         "styles/floating.css",
         "vendor/katex.min.js",
         "vendor/katex.min.css",
@@ -66,7 +68,10 @@
         "modules/knowledgeBase.js",
         "modules/responseToolbar.js",
         "modules/compareMode.js",
-        "modules/promptTemplates.js"
+        "modules/promptTemplates.js",
+        "modules/iconRegistry.js",
+        "modules/contentUI.js",
+        "modules/contentQuery.js"
       ],
       "matches": ["<all_urls>"]
     }

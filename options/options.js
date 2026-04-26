@@ -3,11 +3,11 @@
 // ============================================================
 
 const DEFAULT_TEMPLATES = [
-  { id: 'tpl_eli5', name: "Explain Like I'm 5", icon: '👶', body: 'Explain the following in the simplest terms possible, as if explaining to a 5-year-old:\n\n{selection}', category: 'explain', isDefault: true },
-  { id: 'tpl_bullet', name: 'Key Bullet Points', icon: '📌', body: 'Extract the key bullet points from the following text. Be concise:\n\n{selection}', category: 'summarize', isDefault: true },
-  { id: 'tpl_critique', name: 'Critical Analysis', icon: '🎯', body: 'Provide a critical analysis of the following, highlighting strengths, weaknesses, and areas for improvement:\n\n{selection}', category: 'analyze', isDefault: true },
-  { id: 'tpl_context', name: 'Add Context', icon: '🌍', body: 'Explain the broader context and background of the following from the page "{title}" ({url}):\n\n{selection}', category: 'explain', isDefault: true },
-  { id: 'tpl_counterarg', name: 'Counter Arguments', icon: '⚖️', body: 'What are the main counter-arguments or opposing perspectives to the following statement or idea?\n\n{selection}', category: 'analyze', isDefault: true }
+  { id: 'tpl_eli5', name: "Explain Like I'm 5", icon: 'baby', body: 'Explain the following in the simplest terms possible, as if explaining to a 5-year-old:\n\n{selection}', category: 'explain', isDefault: true },
+  { id: 'tpl_bullet', name: 'Key Bullet Points', icon: 'list', body: 'Extract the key bullet points from the following text. Be concise:\n\n{selection}', category: 'summarize', isDefault: true },
+  { id: 'tpl_critique', name: 'Critical Analysis', icon: 'target', body: 'Provide a critical analysis of the following, highlighting strengths, weaknesses, and areas for improvement:\n\n{selection}', category: 'analyze', isDefault: true },
+  { id: 'tpl_context', name: 'Add Context', icon: 'globe', body: 'Explain the broader context and background of the following from the page "{title}" ({url}):\n\n{selection}', category: 'explain', isDefault: true },
+  { id: 'tpl_counterarg', name: 'Counter Arguments', icon: 'scale', body: 'What are the main counter-arguments or opposing perspectives to the following statement or idea?\n\n{selection}', category: 'analyze', isDefault: true }
 ];
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -15,15 +15,20 @@ function $(id) { return document.getElementById(id); }
 
 function escapeHtml(str) {
   return String(str || '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    .replace(/&/g, '&amp;').replace(/</g, '<')
+    .replace(/>/g, '>').replace(/"/g, '"');
 }
 
-function showToast(msg = '✅ Settings saved!') {
+function refreshIcons(root = document) {
+  if (window.lucide) lucide.createIcons({ attrs: { 'stroke-width': 2 }, nodes: [root] });
+}
+
+function showToast(msg = '<i data-lucide="check-circle" width="14" height="14"></i> Settings saved!') {
   const toast = $('save-toast');
   if (!toast) return;
-  toast.textContent = msg;
+  toast.innerHTML = msg;
   toast.classList.add('show');
+  refreshIcons(toast);
   setTimeout(() => toast.classList.remove('show'), 2200);
 }
 
@@ -64,11 +69,11 @@ function initApiSection() {
     const statusEl = $('token-status');
 
     if (!token) {
-      if (statusEl) { statusEl.textContent = '⚠️ Please enter a token first'; statusEl.className = 'opts-token-status err'; }
+      if (statusEl) { statusEl.innerHTML = `${S2AI_ICONS.icon('alert-triangle', 14)} Please enter a token first`; statusEl.className = 'opts-token-status err'; }
       return;
     }
 
-    if (statusEl) { statusEl.textContent = '🔄 Testing connection…'; statusEl.className = 'opts-token-status loading'; }
+    if (statusEl) { statusEl.innerHTML = `${S2AI_ICONS.icon('loader', 14)} Testing connection…`; statusEl.className = 'opts-token-status loading'; refreshIcons(statusEl); }
 
     try {
       const res = await fetch(`${endpoint}/chat/completions`, {
@@ -82,13 +87,13 @@ function initApiSection() {
       });
 
       if (res.ok) {
-        if (statusEl) { statusEl.textContent = '✅ Connection successful! API token is valid.'; statusEl.className = 'opts-token-status ok'; }
+        if (statusEl) { statusEl.innerHTML = `${S2AI_ICONS.icon('check-circle', 14)} Connection successful! API token is valid.`; statusEl.className = 'opts-token-status ok'; }
       } else {
         const err = await res.text();
-        if (statusEl) { statusEl.textContent = `❌ Error ${res.status}: ${err.slice(0, 100)}`; statusEl.className = 'opts-token-status err'; }
+        if (statusEl) { statusEl.innerHTML = `${S2AI_ICONS.icon('x', 14)} Error ${res.status}: ${escapeHtml(err.slice(0, 100))}`; statusEl.className = 'opts-token-status err'; }
       }
     } catch (e) {
-      if (statusEl) { statusEl.textContent = `❌ Connection failed: ${e.message}`; statusEl.className = 'opts-token-status err'; }
+      if (statusEl) { statusEl.innerHTML = `${S2AI_ICONS.icon('x', 14)} Connection failed: ${escapeHtml(e.message)}`; statusEl.className = 'opts-token-status err'; }
     }
   });
 }
@@ -150,7 +155,7 @@ async function saveAllSettings() {
   };
 
   await new Promise(r => chrome.storage.sync.set(settings, r));
-  showToast('✅ Settings saved!');
+  showToast(`${S2AI_ICONS.icon('check-circle', 14)} Settings saved!`);
 }
 
 // ── Templates Section ──────────────────────────────────────────
@@ -177,7 +182,7 @@ function renderTemplates() {
 
   list.innerHTML = templates.map(t => `
     <div class="opts-template-item" data-id="${escapeHtml(t.id)}">
-      <div class="opts-template-icon">${t.icon || '⚡'}</div>
+      <div class="opts-template-icon">${S2AI_ICONS.icon(t.icon || 'zap', 18)}</div>
       <div class="opts-template-info">
         <div class="opts-template-name">${escapeHtml(t.name)}</div>
         <div class="opts-template-preview">${escapeHtml(t.body?.slice(0, 80) || '')}</div>
@@ -188,10 +193,12 @@ function renderTemplates() {
       </div>
       <div class="opts-template-actions">
         <button class="opts-tpl-btn btn-edit-tpl" data-id="${escapeHtml(t.id)}">Edit</button>
-        ${!t.isDefault ? `<button class="opts-tpl-btn opts-tpl-btn--delete btn-delete-tpl" data-id="${escapeHtml(t.id)}">✕</button>` : ''}
+        ${!t.isDefault ? `<button class="opts-tpl-btn opts-tpl-btn--delete btn-delete-tpl" data-id="${escapeHtml(t.id)}">${S2AI_ICONS.icon('x', 12)}</button>` : ''}
       </div>
     </div>
   `).join('');
+
+  refreshIcons(list);
 
   list.querySelectorAll('.btn-edit-tpl').forEach(btn => {
     btn.addEventListener('click', () => openTemplateEditor(btn.dataset.id));
@@ -217,14 +224,14 @@ function openTemplateEditor(id = null) {
     if (!tpl) return;
     if (editorTitle) editorTitle.textContent = `Edit: ${tpl.name}`;
     setValue('tpl-name', tpl.name);
-    setValue('tpl-icon', tpl.icon || '⚡');
+    setValue('tpl-icon', tpl.icon || 'zap');
     setValue('tpl-body', tpl.body || '');
     setValue('tpl-category', tpl.category || 'custom');
     setValue('tpl-editing-id', tpl.id);
   } else {
     if (editorTitle) editorTitle.textContent = 'New Template';
     setValue('tpl-name', '');
-    setValue('tpl-icon', '⚡');
+    setValue('tpl-icon', 'zap');
     setValue('tpl-body', '{selection}');
     setValue('tpl-category', 'custom');
     setValue('tpl-editing-id', '');
@@ -243,7 +250,7 @@ function closeTemplateEditor() {
 
 async function saveTemplate() {
   const name = $('tpl-name')?.value?.trim();
-  const icon = $('tpl-icon')?.value?.trim() || '⚡';
+  const icon = $('tpl-icon')?.value?.trim() || 'zap';
   const body = $('tpl-body')?.value?.trim();
   const category = $('tpl-category')?.value || 'custom';
   const editId = $('tpl-editing-id')?.value;
@@ -260,7 +267,6 @@ async function saveTemplate() {
     if (idx >= 0) {
       userTemplates[idx] = updatedTpl;
     } else {
-      // Was a default template being "edited" → create user override
       userTemplates.unshift(updatedTpl);
     }
   } else {
@@ -273,7 +279,7 @@ async function saveTemplate() {
   await new Promise(r => chrome.storage.sync.set({ promptTemplates: userTemplates }, r));
   closeTemplateEditor();
   await loadTemplates();
-  showToast('✅ Template saved!');
+  showToast(`${S2AI_ICONS.icon('check-circle', 14)} Template saved!`);
 }
 
 async function deleteUserTemplate(id) {
@@ -281,7 +287,7 @@ async function deleteUserTemplate(id) {
   const userTemplates = data.promptTemplates.filter(t => t.id !== id);
   await new Promise(r => chrome.storage.sync.set({ promptTemplates: userTemplates }, r));
   await loadTemplates();
-  showToast('🗑️ Template deleted');
+  showToast(`${S2AI_ICONS.icon('trash-2', 14)} Template deleted`);
 }
 
 function initTemplatesSection() {
@@ -307,10 +313,11 @@ async function loadDataStats() {
 
   statsEl.innerHTML = `
     <strong>Storage Usage:</strong><br>
-    📜 History: ${histCount} entries<br>
-    📚 Knowledge Base: ${kbCount} snippets<br>
-    ⚡ Custom Templates: ${tplCount} user-created
+    ${S2AI_ICONS.icon('scroll-text', 12)} History: ${histCount} entries<br>
+    ${S2AI_ICONS.icon('book-open', 12)} Knowledge Base: ${kbCount} snippets<br>
+    ${S2AI_ICONS.icon('zap', 12)} Custom Templates: ${tplCount} user-created
   `;
+  refreshIcons(statsEl);
 }
 
 function initDataSection() {
@@ -318,14 +325,14 @@ function initDataSection() {
     if (!confirm('Clear all query history? This cannot be undone.')) return;
     await new Promise(r => chrome.runtime.sendMessage({ type: 'CLEAR_HISTORY' }, r));
     await loadDataStats();
-    showToast('🗑️ History cleared');
+    showToast(`${S2AI_ICONS.icon('trash-2', 14)} History cleared`);
   });
 
   $('btn-clear-kb')?.addEventListener('click', async () => {
     if (!confirm('Clear entire Knowledge Base? This cannot be undone.')) return;
     await new Promise(r => chrome.storage.local.set({ knowledgeBase: [] }, r));
     await loadDataStats();
-    showToast('🗑️ Knowledge Base cleared');
+    showToast(`${S2AI_ICONS.icon('trash-2', 14)} Knowledge Base cleared`);
   });
 
   $('btn-clear-templates')?.addEventListener('click', async () => {
@@ -333,14 +340,14 @@ function initDataSection() {
     await new Promise(r => chrome.storage.sync.set({ promptTemplates: [] }, r));
     await loadTemplates();
     await loadDataStats();
-    showToast('🔄 Templates reset to defaults');
+    showToast(`${S2AI_ICONS.icon('refresh-cw', 14)} Templates reset to defaults`);
   });
 
   $('btn-reset-all')?.addEventListener('click', async () => {
-    if (!confirm('⚠️ Reset ALL settings to default? This includes your API token, model selection, and all preferences.')) return;
+    if (!confirm('Reset ALL settings to default? This includes your API token, model selection, and all preferences.')) return;
     await new Promise(r => chrome.storage.sync.clear(r));
     await loadSettings();
-    showToast('⚠️ All settings reset');
+    showToast(`${S2AI_ICONS.icon('alert-triangle', 14)} All settings reset`);
   });
 }
 
@@ -362,4 +369,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadTemplates(),
     loadDataStats()
   ]);
+
+  refreshIcons();
 });
