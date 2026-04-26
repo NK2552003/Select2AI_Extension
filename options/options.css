@@ -3,35 +3,45 @@
    ============================================================ */
 
 :root {
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
-  --accent-light: #eef2ff;
-  --bg: #f8f9fa;
-  --bg-card: #ffffff;
-  --border: #e2e8f0;
-  --text: #1a202c;
-  --text2: #4a5568;
-  --text3: #718096;
+  --accent: #1A9E88;
+  --accent-hover: #127A68;
+  --accent-light: #D6F0EB;
+  --bg: #E0F0EE;
+  --bg-card: #EBF5F3;
+  --border: #B8C8C8;
+  --text: #080E0F;
+  --text2: #2D3F3F;
+  --text3: #5B7272;
   --success: #10b981;
   --error: #ef4444;
   --warning: #f59e0b;
   --danger: #dc2626;
-  --shadow: 0 1px 4px rgba(0,0,0,0.07);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+  --shadow: 0 1px 4px rgba(8,14,15,0.08);
+  --shadow-md: 0 4px 16px rgba(8,14,15,0.12);
   --radius: 10px;
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
   --sidebar-w: 220px;
+
+  --slate-1: #E0E8E8;
+  --slate-2: #B8C8C8;
+  --slate-3: #5B7272;
+  --slate-4: #2D3F3F;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f0f1a;
-    --bg-card: #1e1e2e;
-    --border: #313244;
-    --text: #cdd6f4;
-    --text2: #a6adc8;
-    --text3: #7f849c;
-    --accent-light: #2d1b69;
+    --bg: #0A1415;
+    --bg-card: #111E20;
+    --border: #1F2F2F;
+    --text: #D8EBE8;
+    --text2: #A8BCBC;
+    --text3: #7C9898;
+    --accent-light: rgba(26, 158, 136, 0.12);
+
+    --slate-1: #1F2F2F;
+    --slate-2: #2F4242;
+    --slate-3: #7C9898;
+    --slate-4: #A8BCBC;
   }
 }
 
@@ -214,7 +224,7 @@ body {
 .opts-field select:focus,
 .opts-field textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+  box-shadow: 0 0 0 3px rgba(26, 158, 136, 0.12);
 }
 
 .opts-field textarea {
@@ -550,7 +560,7 @@ kbd {
   color: var(--text3);
   padding: 10px 12px;
   background: var(--accent-light);
-  border: 1px solid rgba(79,70,229,0.2);
+  border: 1px solid rgba(26, 158, 136, 0.2);
   border-radius: 7px;
   line-height: 1.6;
 }

@@ -1,10 +1,8 @@
-# Fix History & Knowledge Base UI Bugs
+# Theme Rebuild TODO
 
-- [x] Analyze files and identify issues
-- [x] Get user approval for plan
-- [x] Fix `popup.js` `renderHistory()` — add missing `</div>` to close `.list-item`
-- [x] Fix `popup.js` `renderKB()` — add missing `</div>` to close `.list-item`
-- [x] Fix `popup.js` `showDetail()` — properly close all `<div>` section tags
-- [x] Fix `popup.html` — add `position: relative` to `body` CSS
-- [x] Verify all edits are correct
+- [x] 1. Update `styles/globals.css` — Tailwind CSS variables (light + dark)
+- [x] 2. Update `styles/floating.css` — Floating UI variables + hardcoded purple glows
+- [x] 3. Update `options/options.css` — Options page variables + hardcoded purple glows
+- [x] 4. Update `popup.html` — Inline popup styles variables
+- [x] 5. Verify no remaining purple references across the codebase
 
