@@ -1,7 +1,7 @@
 # Select2AI: GitHub Models
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/NK2552003/browser-extension-ai)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/NK2552003/browser-extension-ai)
 
 A powerful browser extension that lets you select text on any webpage and interact with GitHub Models AI directly from your browser. Get instant summaries, explanations, answers, or ask custom questions - all displayed in a beautiful floating window with light/dark theme support and smooth animations.
 
@@ -13,7 +13,7 @@ A powerful browser extension that lets you select text on any webpage and intera
   - Explain concepts
   - Answer questions
   - Custom queries
--  **Theme Support**: Automatic light/dark mode that follows your system preferences
+-  **Theme Support**: Automatic light/dark mode that follows your system preferences, with manual override (System / Dark / Light)
 -  **Smooth Animations**: Beautiful UI animations powered by GSAP
 -  **Math Rendering**: LaTeX/KaTeX support for mathematical equations
 -  **Customizable**: Configure your GitHub token, model selection, and endpoint
@@ -161,16 +161,34 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ##  Roadmap
 
 - [x] Support for more AI models
-- [ ] Context persistence across sessions
-- [ ] Export conversations
-- [ ] Custom prompt templates
-- [ ] Keyboard shortcuts customization
+- [x] Context persistence across sessions
+- [x] Export conversations
+- [x] Custom prompt templates
+- [x] Keyboard shortcuts customization
+- [x] Manual theme toggle (Dark / Light / System)
 - [ ] Multi-language support
 - [ ] Browser extension store publication
 
 ## Changelog
 
-### Version 1.0.0 (Current)
+### Version 2.0.0 (Current)
+- Complete UI redesign with dark-first aesthetic
+- Popup dashboard with model selector, toggles, and stats
+- History & Knowledge Base tabs with search and detail view
+- Custom prompt templates (built-in + user-created)
+- Streaming responses with real-time chunk rendering
+- Side-by-side model Compare Mode
+- Response toolbar: copy, TTS, export, save to KB
+- Smart content detection (code, math, questions, tables)
+- Code intelligence suite (explain, find bugs, refactor, convert language)
+- Translation & tone rewrite with language picker
+- Multi-turn chat with per-tab conversation memory
+- Draggable floating panel
+- **Manual theme toggle** (System / Dark / Light) for popup and options pages
+- Keyboard shortcuts: `Ctrl+Shift+A` (open menu), `Ctrl+Shift+S` (save to KB)
+- Context menus: Summarize Page, Explain Selection, Translate, Find Bugs
+
+### Version 1.0.0
 - Initial release
 - Text selection AI queries
 - Light/dark theme support
