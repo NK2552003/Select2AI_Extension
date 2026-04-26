@@ -166,6 +166,7 @@ function renderHistory(items) {
         </span>
         <button class="list-item-delete" data-id="${escapeHtml(item.id)}" title="Delete">${S2AI_ICONS.icon('x', 12)}</button>
       </div>
+    </div>
   `).join('');
 
   refreshIcons(container);
@@ -245,6 +246,7 @@ function renderKB(items) {
         </span>
         <button class="list-item-delete" data-id="${escapeHtml(item.id)}" title="Remove from KB">${S2AI_ICONS.icon('x', 12)}</button>
       </div>
+    </div>
   `).join('');
 
   refreshIcons(container);
@@ -290,9 +292,11 @@ function showDetail(item, type) {
     <div>
       <div class="detail-section-label">Prompt / Query</div>
       <div class="detail-text">${escapeHtml(item.prompt || '')}</div>
+    </div>
     <div>
       <div class="detail-section-label">${label}</div>
       <div class="detail-text">${escapeHtml(content || '')}</div>
+    </div>
     <div>
       <div class="detail-section-label">Details</div>
       <div style="font-size:11px;color:var(--text3);display:flex;flex-direction:column;gap:3px">
@@ -301,6 +305,7 @@ function showDetail(item, type) {
         <span>Date: <strong>${new Date(item.timestamp || item.savedAt).toLocaleString()}</strong></span>
         ${item.url ? `<span>URL: <a href="${escapeHtml(item.url)}" target="_blank" style="color:var(--accent)">${escapeHtml(item.url.slice(0, 60))}</a></span>` : ''}
       </div>
+    </div>
     <div class="detail-actions">
       <button class="detail-action-btn" id="detail-copy">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>

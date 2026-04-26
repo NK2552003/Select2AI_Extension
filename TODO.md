@@ -1,9 +1,10 @@
-# TODO
+# Fix History & Knowledge Base UI Bugs
 
-- [x] Update `scripts/icons.js` to return inline SVGs using local PATHS map
-- [x] Update `popup.html` — remove lucide script, replace static `<i data-lucide>` with inline SVGs
-- [x] Update `options/options.html` — remove lucide script, replace static `<i data-lucide>` with inline SVGs
-- [x] Update `modules/contentUI.js` — fix icon rendering, add `createTriggerButton`, add GSAP animation to action menu
-- [x] Update `styles/floating.css` — add trigger button styles, remove CSS keyframe animation on action menu
-- [x] Update `contentScript.js` — show trigger button on selection instead of action menu
+- [x] Analyze files and identify issues
+- [x] Get user approval for plan
+- [x] Fix `popup.js` `renderHistory()` — add missing `</div>` to close `.list-item`
+- [x] Fix `popup.js` `renderKB()` — add missing `</div>` to close `.list-item`
+- [x] Fix `popup.js` `showDetail()` — properly close all `<div>` section tags
+- [x] Fix `popup.html` — add `position: relative` to `body` CSS
+- [x] Verify all edits are correct
 
