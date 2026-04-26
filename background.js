@@ -325,7 +325,8 @@ async function getSettings() {
       model: 'openai/gpt-4.1-mini',
       endpoint: 'https://models.github.ai/inference',
       streamingEnabled: true,
-      pageContextDefault: false
+      pageContextDefault: false,
+      theme: 'system'
     }, resolve);
   });
 }

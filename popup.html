@@ -16,9 +16,9 @@
       --accent-glow: rgba(0, 196, 154, 0.18);
       --accent-subtle: rgba(0, 196, 154, 0.06);
 
-      --bg: #141918;
-      --bg2: #1A1F1E;
-      --bg3: #202726;
+       --bg: #0a0c0c;
+      --bg2: #141817;
+      --bg3: #141818;
 
       --border: rgba(255,255,255,0.07);
       --border-strong: rgba(255,255,255,0.11);
@@ -51,6 +51,32 @@
         --accent-light: rgba(0, 196, 154, 0.10);
         --accent-subtle: rgba(0, 196, 154, 0.05);
       }
+    }
+
+    html[data-theme="dark"] {
+      --bg: #0a0c0c;
+      --bg2: #141817;
+      --bg3: #141818;
+      --border: rgba(255,255,255,0.07);
+      --border-strong: rgba(255,255,255,0.11);
+      --text: #DFF0EC;
+      --text2: #8FADA8;
+      --text3: #4D6A65;
+      --accent-light: rgba(0, 196, 154, 0.10);
+      --accent-subtle: rgba(0, 196, 154, 0.06);
+    }
+
+    html[data-theme="light"] {
+      --bg: #F0F5F4;
+      --bg2: #E6EDEB;
+      --bg3: #DAEAE7;
+      --border: rgba(0,0,0,0.07);
+      --border-strong: rgba(0,0,0,0.11);
+      --text: #0E1A18;
+      --text2: #3A5550;
+      --text3: #8AADA8;
+      --accent-light: rgba(0, 196, 154, 0.10);
+      --accent-subtle: rgba(0, 196, 154, 0.05);
     }
 
     *, *::before, *::after {
@@ -713,6 +739,17 @@
           <input type="checkbox" id="toggle-pagecontext" />
           <span class="slider"></span>
         </label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label">
+          <span class="toggle-label-main">Theme</span>
+          <span class="toggle-label-sub">Choose dark, light, or system</span>
+        </div>
+        <select id="theme-select" style="padding:6px 24px 6px 10px;font-size:12px;background:var(--bg2);border:1px solid var(--border-strong);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font);appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2711%27 height=%2711%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%234D6A65%27 stroke-width=%272.5%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpolyline points=%276 9 12 15 18 9%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 8px center;cursor:pointer;outline:none;">
+          <option value="system">System</option>
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
       </div>
     </div>
 

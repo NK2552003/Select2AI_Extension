@@ -69,13 +69,23 @@ function initTabs() {
   });
 }
 
+// ── Theme ────────────────────────────────────────────────────
+function applyTheme(theme) {
+  if (theme === 'system' || !theme) {
+    delete document.documentElement.dataset.theme;
+  } else {
+    document.documentElement.dataset.theme = theme;
+  }
+}
+
 // ── Settings ──────────────────────────────────────────────────
 async function loadSettings() {
   const s = await new Promise(r =>
     chrome.storage.sync.get({
       model: 'openai/gpt-4.1-mini',
       streamingEnabled: true,
-      pageContextDefault: false
+      pageContextDefault: false,
+      theme: 'system'
     }, r)
   );
 
@@ -87,6 +97,10 @@ async function loadSettings() {
 
   const ctxToggle = $('toggle-pagecontext');
   if (ctxToggle) ctxToggle.checked = s.pageContextDefault;
+
+  const themeSelect = $('theme-select');
+  if (themeSelect) themeSelect.value = s.theme;
+  applyTheme(s.theme);
 }
 
 function bindSettingsListeners() {
@@ -100,6 +114,12 @@ function bindSettingsListeners() {
 
   $('toggle-pagecontext')?.addEventListener('change', (e) => {
     chrome.storage.sync.set({ pageContextDefault: e.target.checked });
+  });
+
+  $('theme-select')?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    chrome.storage.sync.set({ theme: val });
+    applyTheme(val);
   });
 }
 

@@ -98,6 +98,15 @@ function initApiSection() {
   });
 }
 
+// ── Theme ─────────────────────────────────────────────────────
+function applyTheme(theme) {
+  if (theme === 'system' || !theme) {
+    delete document.documentElement.dataset.theme;
+  } else {
+    document.documentElement.dataset.theme = theme;
+  }
+}
+
 // ── Load Settings into UI ──────────────────────────────────────
 async function loadSettings() {
   const s = await new Promise(r => chrome.storage.sync.get({
@@ -110,7 +119,8 @@ async function loadSettings() {
     showInsightsBar: true,
     historyLimit: 150,
     compareModelA: 'openai/gpt-4.1',
-    compareModelB: 'meta/Llama-4-Scout-17B-16E-Instruct'
+    compareModelB: 'meta/Llama-4-Scout-17B-16E-Instruct',
+    theme: 'system'
   }, r));
 
   setValue('github-token', s.githubToken);
@@ -123,6 +133,8 @@ async function loadSettings() {
   setValue('opt-history-limit', String(s.historyLimit));
   setValue('compare-model-a', s.compareModelA);
   setValue('compare-model-b', s.compareModelB);
+  setValue('opt-theme', s.theme);
+  applyTheme(s.theme);
 }
 
 function setValue(id, val) {
@@ -151,10 +163,12 @@ async function saveAllSettings() {
     showInsightsBar: getChecked('opt-insights'),
     historyLimit: parseInt($('opt-history-limit')?.value || '150'),
     compareModelA: $('compare-model-a')?.value || 'openai/gpt-4.1',
-    compareModelB: $('compare-model-b')?.value || 'meta/Llama-4-Scout-17B-16E-Instruct'
+    compareModelB: $('compare-model-b')?.value || 'meta/Llama-4-Scout-17B-16E-Instruct',
+    theme: $('opt-theme')?.value || 'system'
   };
 
   await new Promise(r => chrome.storage.sync.set(settings, r));
+  applyTheme(settings.theme);
   showToast(`${S2AI_ICONS.icon('check-circle', 14)} Settings saved!`);
 }
 
