@@ -1,80 +1,335 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Select2AI Settings</title>
-    <link rel="stylesheet" href="options.css" />
-    <script src="options.js" defer></script>
-  </head>
-  <body>
-    <div class="container">
-      <header class="header">
-        <div class="logo">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M12 3l1.8 3.9L18 8.7l-3.6 3.3L15 18l-3-1.9L9 18l.6-6L6 8.7l4.2-1.8L12 3z" />
-          </svg>
-          <h1>Select2AI Settings</h1>
-        </div>
-        <p class="subtitle">Configure your GitHub Models integration</p>
-      </header>
+<head>
+  <meta charset="UTF-8" />
+  <title>Select2AI Options</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="opts-layout">
 
-      <main class="main">
-        <section class="section">
-          <label class="label">
-            <span class="label-text">
-              <span class="label-title">GitHub Personal Access Token</span>
-              <span class="label-desc">Classic token with access to GitHub Models API</span>
-            </span>
-            <input id="token" class="input" type="password" placeholder="ghp_********************************" autocomplete="off" />
-          </label>
-
-          <label class="label">
-            <span class="label-text">
-              <span class="label-title">AI Model</span>
-              <span class="label-desc">Select the model to use for responses</span>
-            </span>
-            <select id="model" class="select" aria-label="AI Model">
-              <option value="">Loading models...</option>
-            </select>
-          </label>
-        </section>
-
-        <footer class="footer">
-          <button id="save" class="btn btn-primary" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-              <polyline points="17 21 17 13 7 13 7 21"/>
-              <polyline points="7 3 7 8 15 8"/>
-            </svg>
-            Save Settings
-          </button>
-          <button id="test" class="btn btn-secondary" type="button">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-            </svg>
-            Test Connection
-          </button>
-          <span id="status" class="status" aria-live="polite"></span>
-        </footer>
-      </main>
-
-      <div class="info-box" role="note">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="16" x2="12" y2="12"/>
-          <line x1="12" y1="8" x2="12.01" y2="8"/>
-        </svg>
+    <!-- Sidebar -->
+    <nav class="opts-sidebar">
+      <div class="opts-brand">
+        <div class="opts-logo">S2</div>
         <div>
-          <strong>How to get started:</strong>
-          <ol>
-            <li>Create a GitHub Personal Access Token (classic) at <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer noopener">github.com/settings/tokens</a></li>
-            <li>Ensure the token has appropriate permissions for GitHub Models</li>
-            <li>Paste your token above and select your preferred model</li>
-            <li>Click "Save Settings" and test the connection</li>
-          </ol>
+          <div class="opts-brand-name">Select<span>2AI</span></div>
+          <div class="opts-brand-ver">v2.0.0</div>
         </div>
       </div>
-    </div>
-  </body>
+      <ul class="opts-nav">
+        <li><a href="#section-api" class="opts-nav-link active" data-section="api">🔑 API & Model</a></li>
+        <li><a href="#section-behavior" class="opts-nav-link" data-section="behavior">⚙️ Behavior</a></li>
+        <li><a href="#section-templates" class="opts-nav-link" data-section="templates">⚡ Templates</a></li>
+        <li><a href="#section-shortcuts" class="opts-nav-link" data-section="shortcuts">⌨️ Shortcuts</a></li>
+        <li><a href="#section-compare" class="opts-nav-link" data-section="compare">🔄 Compare Mode</a></li>
+        <li><a href="#section-data" class="opts-nav-link" data-section="data">🗄️ Data & Privacy</a></li>
+      </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="opts-main">
+      <div id="save-toast" class="opts-save-toast">✅ Settings saved!</div>
+
+      <!-- ── API & Model ─────────────────────────────────────── -->
+      <section id="section-api" class="opts-section active">
+        <div class="opts-section-header">
+          <h2>API & Model</h2>
+          <p>Configure your GitHub Models API access and default model.</p>
+        </div>
+
+        <div class="opts-card">
+          <div class="opts-field">
+            <label for="github-token">GitHub Models API Token <span class="required">*</span></label>
+            <div class="opts-input-group">
+              <input type="password" id="github-token" placeholder="ghp_..." autocomplete="off" />
+              <button class="opts-icon-btn" id="toggle-token-vis" title="Show/hide token">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+            <p class="opts-hint">Get your token at <a href="https://github.com/marketplace/models" target="_blank">github.com/marketplace/models</a>. Stored securely in browser sync storage.</p>
+          </div>
+
+          <div class="opts-field">
+            <label for="api-endpoint">API Endpoint</label>
+            <input type="url" id="api-endpoint" placeholder="https://models.github.ai/inference" />
+            <p class="opts-hint">Leave default unless using a custom proxy.</p>
+          </div>
+
+          <div class="opts-field">
+            <label for="default-model">Default Model</label>
+            <select id="default-model">
+              <optgroup label="OpenAI">
+                <option value="openai/gpt-4o-mini">GPT-4o Mini (Fast, efficient)</option>
+                <option value="openai/gpt-4o">GPT-4o (Most capable)</option>
+              </optgroup>
+              <optgroup label="Meta Llama">
+                <option value="meta/Meta-Llama-3.1-70B-Instruct">Llama 3.1 70B</option>
+                <option value="meta/Meta-Llama-3.1-8B-Instruct">Llama 3.1 8B (Fast)</option>
+              </optgroup>
+              <optgroup label="Mistral AI">
+                <option value="mistral-ai/Mistral-7B-Instruct-v0.3">Mistral 7B</option>
+              </optgroup>
+              <optgroup label="Microsoft">
+                <option value="microsoft/Phi-3.5-mini-instruct">Phi-3.5 Mini</option>
+              </optgroup>
+              <optgroup label="Cohere">
+                <option value="cohere/Cohere-command-r-plus-08-2024">Command R+</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div id="token-status" class="opts-token-status"></div>
+          <button class="opts-btn opts-btn--primary" id="btn-test-token">
+            🔌 Test Connection
+          </button>
+        </div>
+      </section>
+
+      <!-- ── Behavior ────────────────────────────────────────── -->
+      <section id="section-behavior" class="opts-section">
+        <div class="opts-section-header">
+          <h2>Behavior</h2>
+          <p>Customize how Select2AI behaves on webpages.</p>
+        </div>
+
+        <div class="opts-card">
+          <div class="opts-toggle-item">
+            <div class="opts-toggle-info">
+              <div class="opts-toggle-title">Streaming Responses</div>
+              <div class="opts-toggle-desc">Show AI responses word-by-word as they're generated</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" id="opt-streaming" /><span class="slider"></span></label>
+          </div>
+
+          <div class="opts-toggle-item">
+            <div class="opts-toggle-info">
+              <div class="opts-toggle-title">Include Page Context by Default</div>
+              <div class="opts-toggle-desc">Automatically include page title, URL, and meta description with every query</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" id="opt-pagecontext" /><span class="slider"></span></label>
+          </div>
+
+          <div class="opts-toggle-item">
+            <div class="opts-toggle-info">
+              <div class="opts-toggle-title">Auto-save Queries to History</div>
+              <div class="opts-toggle-desc">Automatically save all AI queries and responses to history</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" id="opt-autosave" checked /><span class="slider"></span></label>
+          </div>
+
+          <div class="opts-toggle-item">
+            <div class="opts-toggle-info">
+              <div class="opts-toggle-title">Show Selection Insights Bar</div>
+              <div class="opts-toggle-desc">Display word count, read time, and content type in the action menu</div>
+            </div>
+            <label class="toggle-switch"><input type="checkbox" id="opt-insights" checked /><span class="slider"></span></label>
+          </div>
+
+          <div class="opts-field" style="margin-top:16px">
+            <label for="opt-history-limit">History Auto-cleanup Limit</label>
+            <select id="opt-history-limit">
+              <option value="50">50 entries</option>
+              <option value="100">100 entries</option>
+              <option value="150" selected>150 entries (default)</option>
+              <option value="300">300 entries</option>
+              <option value="0">No limit</option>
+            </select>
+            <p class="opts-hint">Older entries beyond this limit are automatically removed.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Templates ───────────────────────────────────────── -->
+      <section id="section-templates" class="opts-section">
+        <div class="opts-section-header">
+          <h2>Custom Prompt Templates</h2>
+          <p>Create reusable prompt templates with variables: <code>{selection}</code>, <code>{url}</code>, <code>{title}</code>, <code>{language}</code></p>
+        </div>
+
+        <div class="opts-card">
+          <div class="opts-templates-toolbar">
+            <button class="opts-btn opts-btn--primary" id="btn-new-template">+ New Template</button>
+            <span class="opts-hint" style="margin:0">Templates appear in the action menu when you select text.</span>
+          </div>
+
+          <div id="templates-list" class="opts-templates-list">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Template Editor (hidden by default) -->
+        <div id="template-editor" class="opts-card opts-template-editor" style="display:none">
+          <h3 id="editor-title">New Template</h3>
+
+          <div class="opts-field">
+            <label for="tpl-name">Template Name</label>
+            <input type="text" id="tpl-name" placeholder="e.g. Explain Like I'm 5" maxlength="50" />
+          </div>
+
+          <div class="opts-field">
+            <label for="tpl-icon">Icon (emoji)</label>
+            <input type="text" id="tpl-icon" placeholder="⚡" maxlength="4" style="width:60px" />
+          </div>
+
+          <div class="opts-field">
+            <label for="tpl-body">Prompt Template</label>
+            <textarea id="tpl-body" rows="5" placeholder="Your prompt here:\n\n{selection}"></textarea>
+            <p class="opts-hint">
+              Available variables: <code>{selection}</code> (selected text), <code>{url}</code> (page URL),
+              <code>{title}</code> (page title), <code>{language}</code> (target language if applicable)
+            </p>
+          </div>
+
+          <div class="opts-field">
+            <label for="tpl-category">Category</label>
+            <select id="tpl-category">
+              <option value="custom">Custom</option>
+              <option value="explain">Explain</option>
+              <option value="summarize">Summarize</option>
+              <option value="analyze">Analyze</option>
+              <option value="rewrite">Rewrite</option>
+              <option value="code">Code</option>
+            </select>
+          </div>
+
+          <div class="opts-editor-actions">
+            <button class="opts-btn opts-btn--primary" id="btn-save-template">Save Template</button>
+            <button class="opts-btn" id="btn-cancel-template">Cancel</button>
+          </div>
+
+          <input type="hidden" id="tpl-editing-id" />
+        </div>
+      </section>
+
+      <!-- ── Shortcuts ────────────────────────────────────────── -->
+      <section id="section-shortcuts" class="opts-section">
+        <div class="opts-section-header">
+          <h2>Keyboard Shortcuts</h2>
+          <p>Trigger Select2AI without touching the mouse.</p>
+        </div>
+
+        <div class="opts-card">
+          <div class="opts-shortcut-item">
+            <div class="opts-shortcut-info">
+              <div class="opts-shortcut-title">Open Action Menu</div>
+              <div class="opts-shortcut-desc">Opens the action menu for the currently selected text</div>
+            </div>
+            <div class="opts-shortcut-keys">
+              <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd>
+              <span class="opts-shortcut-mac">(Mac: ⌘⇧A)</span>
+            </div>
+          </div>
+
+          <div class="opts-shortcut-item">
+            <div class="opts-shortcut-info">
+              <div class="opts-shortcut-title">Save to Knowledge Base</div>
+              <div class="opts-shortcut-desc">Saves the last AI response to your Knowledge Base</div>
+            </div>
+            <div class="opts-shortcut-keys">
+              <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>
+              <span class="opts-shortcut-mac">(Mac: ⌘⇧S)</span>
+            </div>
+          </div>
+
+          <div class="opts-shortcut-item">
+            <div class="opts-shortcut-info">
+              <div class="opts-shortcut-title">Close Panel</div>
+              <div class="opts-shortcut-desc">Dismiss the floating AI panel</div>
+            </div>
+            <div class="opts-shortcut-keys">
+              <kbd>Esc</kbd>
+            </div>
+          </div>
+
+          <div class="opts-hint" style="margin-top:10px">
+            To customize keyboard shortcuts, visit <a href="chrome://extensions/shortcuts" target="_blank">chrome://extensions/shortcuts</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Compare Mode ─────────────────────────────────────── -->
+      <section id="section-compare" class="opts-section">
+        <div class="opts-section-header">
+          <h2>Compare Mode</h2>
+          <p>Set the default models used when Compare Mode is enabled from the action menu.</p>
+        </div>
+
+        <div class="opts-card">
+          <div class="opts-compare-grid">
+            <div class="opts-field">
+              <label for="compare-model-a">Model A (Left)</label>
+              <select id="compare-model-a">
+                <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                <option value="openai/gpt-4o">GPT-4o</option>
+                <option value="meta/Meta-Llama-3.1-70B-Instruct">Llama 3.1 70B</option>
+                <option value="meta/Meta-Llama-3.1-8B-Instruct">Llama 3.1 8B</option>
+                <option value="mistral-ai/Mistral-7B-Instruct-v0.3">Mistral 7B</option>
+                <option value="microsoft/Phi-3.5-mini-instruct">Phi-3.5 Mini</option>
+                <option value="cohere/Cohere-command-r-plus-08-2024">Command R+</option>
+              </select>
+            </div>
+            <div class="opts-compare-vs">VS</div>
+            <div class="opts-field">
+              <label for="compare-model-b">Model B (Right)</label>
+              <select id="compare-model-b">
+                <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+                <option value="openai/gpt-4o">GPT-4o</option>
+                <option value="meta/Meta-Llama-3.1-70B-Instruct" selected>Llama 3.1 70B</option>
+                <option value="meta/Meta-Llama-3.1-8B-Instruct">Llama 3.1 8B</option>
+                <option value="mistral-ai/Mistral-7B-Instruct-v0.3">Mistral 7B</option>
+                <option value="microsoft/Phi-3.5-mini-instruct">Phi-3.5 Mini</option>
+                <option value="cohere/Cohere-command-r-plus-08-2024">Command R+</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Data & Privacy ────────────────────────────────────── -->
+      <section id="section-data" class="opts-section">
+        <div class="opts-section-header">
+          <h2>Data & Privacy</h2>
+          <p>Manage your stored data. All data is stored locally in your browser.</p>
+        </div>
+
+        <div class="opts-card">
+          <div id="data-stats" class="opts-data-stats">Loading storage info…</div>
+
+          <div class="opts-data-actions">
+            <button class="opts-btn opts-btn--danger" id="btn-clear-history-opts">
+              🗑️ Clear All History
+            </button>
+            <button class="opts-btn opts-btn--danger" id="btn-clear-kb">
+              🗑️ Clear Knowledge Base
+            </button>
+            <button class="opts-btn opts-btn--danger" id="btn-clear-templates">
+              🗑️ Reset Templates to Default
+            </button>
+            <button class="opts-btn opts-btn--danger" id="btn-reset-all">
+              ⚠️ Reset All Settings
+            </button>
+          </div>
+
+          <div class="opts-privacy-note">
+            <strong>Privacy:</strong> Your API token is stored in Chrome's sync storage (encrypted). 
+            All queries and history are stored only in local browser storage and are never sent to any server 
+            other than the GitHub Models API.
+          </div>
+        </div>
+      </section>
+
+      <!-- Save Bar -->
+      <div class="opts-save-bar">
+        <button class="opts-btn opts-btn--primary opts-btn--lg" id="btn-save-all">Save All Settings</button>
+        <span id="save-status" class="opts-save-status"></span>
+      </div>
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
 </html>

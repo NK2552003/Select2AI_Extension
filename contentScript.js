@@ -1,680 +1,972 @@
-;(() => {
-  const STATE = {
-    selectionText: "",
-    isOpen: false,
-    theme: null,
-    showingMenu: false,
-  }
-  const MAX_SELECTION_CHARS = 6000
-  const SHADOW_ID = "aixt-select2ai-root"
-  const CSS_URL = chrome.runtime.getURL("styles/floating.css")
-  const GSAP_URL = chrome.runtime.getURL("vendor/gsap.min.js")
+// ============================================================
+// Select2AI Content Script v2.0
+// All features: smart detection, actions, chat mode, toolbar,
+// streaming, compare mode, page context, KB, templates, TTS
+// ============================================================
 
-  // Load GSAP dynamically
-  let gsapLoaded = false
-  function loadGSAP() {
-    return new Promise((resolve) => {
-      const s = document.createElement("script")
-      s.src = GSAP_URL
-      s.onload = () => {
-        gsapLoaded = !!window.gsap
-        resolve(gsapLoaded)
+(async () => {
+  // ── Imports via dynamic import (MV3 web_accessible_resources) ──
+  const extRoot = chrome.runtime.getURL('');
+  const { detectContentType, getSuggestedActions, getActionMeta, buildPrompt, ContentType } =
+    await import(chrome.runtime.getURL('modules/smartDetect.js'));
+  const { chatHistory } = await import(chrome.runtime.getURL('modules/chatHistory.js'));
+  const { saveToKB } = await import(chrome.runtime.getURL('modules/knowledgeBase.js'));
+  const { createResponseToolbar } = await import(chrome.runtime.getURL('modules/responseToolbar.js'));
+  const { buildComparePanelHTML, buildModelSelectorHTML, getComparableModels } =
+    await import(chrome.runtime.getURL('modules/compareMode.js'));
+  const { loadTemplates, applyTemplate } = await import(chrome.runtime.getURL('modules/promptTemplates.js'));
+
+  // ── State ─────────────────────────────────────────────────────
+  let panel = null;
+  let actionMenu = null;
+  let currentSelection = '';
+  let currentDetection = null;
+  let isProcessing = false;
+  let streamingChunks = {};
+  let compareStreamContent = { a: '', b: '' };
+  let settings = {};
+  let templates = [];
+  let pageContextEnabled = false;
+  let currentTabKey = `${location.href}_${Date.now()}`;
+  let lastResponseContent = '';
+  let lastPrompt = '';
+  let lastAction = '';
+  let compareMode = false;
+  let compareModeModels = { a: '', b: '' };
+  let pendingAction = null;
+
+  // ── Load settings & templates ─────────────────────────────────
+  async function loadSettings() {
+    settings = await new Promise(r =>
+      chrome.storage.sync.get({
+        githubToken: '',
+        model: 'openai/gpt-4o-mini',
+        streamingEnabled: true,
+        pageContextDefault: false,
+        compareModelA: 'openai/gpt-4o-mini',
+        compareModelB: 'meta/Meta-Llama-3.1-70B-Instruct'
+      }, r)
+    );
+    pageContextEnabled = settings.pageContextDefault;
+    compareModeModels.a = settings.compareModelA;
+    compareModeModels.b = settings.compareModelB;
+  }
+
+  await loadSettings();
+  templates = await loadTemplates();
+
+  // ── Listen for settings changes ───────────────────────────────
+  chrome.storage.onChanged.addListener(async (changes, area) => {
+    if (area === 'sync') {
+      await loadSettings();
+      templates = await loadTemplates();
+    }
+  });
+
+  // ── KaTeX render helper ───────────────────────────────────────
+  function renderKaTeX(element) {
+    if (!window.katex) return;
+    const text = element.innerHTML;
+    element.innerHTML = text
+      .replace(/\$\$([^$]+)\$\$/g, (_, math) => {
+        try { return katex.renderToString(math, { displayMode: true }); } catch { return `$$${math}$$`; }
+      })
+      .replace(/\$([^$\n]+)\$/g, (_, math) => {
+        try { return katex.renderToString(math, { displayMode: false }); } catch { return `$${math}$`; }
+      });
+  }
+
+  // ── Simple Markdown renderer ──────────────────────────────────
+  function renderMarkdown(text) {
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) =>
+        `<pre class="s2ai-code-block${lang ? ` language-${lang}` : ''}"><code>${code.trim()}</code></pre>`)
+      .replace(/`([^`]+)`/g, '<code class="s2ai-inline-code">$1</code>')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^[-*+] (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+      .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/\n\n+/g, '</p><p>')
+      .replace(/\n/g, '<br>')
+      .replace(/^(?!<[huplba])(.+)/, '<p>$1')
+      .replace(/(?<=[^>])$/, '</p>');
+  }
+
+  // ── Action Menu ───────────────────────────────────────────────
+  function showActionMenu(x, y, selectedText, detection) {
+    removeActionMenu();
+
+    const menu = document.createElement('div');
+    menu.id = 's2ai-action-menu';
+    menu.className = 's2ai-action-menu';
+    menu.setAttribute('role', 'menu');
+
+    // Header: insights bar
+    const insights = document.createElement('div');
+    insights.className = 's2ai-insights-bar';
+    insights.innerHTML = `
+      <span class="s2ai-insight">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        ${detection.wordCount} words
+      </span>
+      <span class="s2ai-insight">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        ~${detection.readTime}m read
+      </span>
+      <span class="s2ai-insight s2ai-insight--type">
+        ${getTypeIcon(detection.type)} ${capitalize(detection.type)}
+        ${detection.language ? `<span class="s2ai-lang-badge">${detection.language}</span>` : ''}
+      </span>
+      <span class="s2ai-insight s2ai-insight--complexity s2ai-complexity--${detection.complexity.toLowerCase()}">
+        ${detection.complexity}
+      </span>
+    `;
+    menu.appendChild(insights);
+
+    // Actions section
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 's2ai-menu-actions';
+
+    const suggested = getSuggestedActions(detection.type);
+
+    // Build action buttons
+    const allActions = buildActionList(suggested, detection);
+
+    for (const actionGroup of allActions) {
+      if (actionGroup.divider) {
+        const div = document.createElement('div');
+        div.className = 's2ai-menu-divider';
+        if (actionGroup.label) {
+          div.innerHTML = `<span>${actionGroup.label}</span>`;
+          div.className = 's2ai-menu-section-label';
+        }
+        actionsDiv.appendChild(div);
+        continue;
       }
-      s.onerror = () => resolve(false)
-      document.documentElement.appendChild(s)
-    })
+
+      const meta = getActionMeta(actionGroup.id);
+      const btn = document.createElement('button');
+      btn.className = `s2ai-menu-btn${actionGroup.suggested ? ' s2ai-menu-btn--suggested' : ''}`;
+      btn.setAttribute('role', 'menuitem');
+      btn.dataset.action = actionGroup.id;
+      btn.innerHTML = `
+        <span class="s2ai-menu-btn-icon">${meta.icon}</span>
+        <span class="s2ai-menu-btn-label">${meta.label}</span>
+        ${actionGroup.suggested ? '<span class="s2ai-suggested-badge">✦</span>' : ''}
+      `;
+      btn.addEventListener('click', () => handleAction(actionGroup.id, selectedText, detection));
+      actionsDiv.appendChild(btn);
+    }
+
+    menu.appendChild(actionsDiv);
+
+    // Templates section
+    if (templates.length > 0) {
+      const tplSection = document.createElement('div');
+      tplSection.className = 's2ai-menu-section-label';
+      tplSection.innerHTML = '<span>Templates</span>';
+      menu.appendChild(tplSection);
+
+      for (const tpl of templates.slice(0, 5)) {
+        const btn = document.createElement('button');
+        btn.className = 's2ai-menu-btn s2ai-menu-btn--template';
+        btn.setAttribute('role', 'menuitem');
+        btn.innerHTML = `<span class="s2ai-menu-btn-icon">${tpl.icon}</span><span class="s2ai-menu-btn-label">${escapeHtml(tpl.name)}</span>`;
+        btn.addEventListener('click', () => handleTemplateAction(tpl, selectedText));
+        menu.appendChild(btn);
+      }
+    }
+
+    // Footer: compare mode toggle
+    const footer = document.createElement('div');
+    footer.className = 's2ai-menu-footer';
+    footer.innerHTML = `
+      <button class="s2ai-compare-toggle${compareMode ? ' active' : ''}" title="Compare two models side-by-side" id="s2ai-compare-toggle">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="3" y2="18"/></svg>
+        ${compareMode ? 'Compare ON' : 'Compare'}
+      </button>
+      <button class="s2ai-context-toggle${pageContextEnabled ? ' active' : ''}" title="Include page context" id="s2ai-context-toggle">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        ${pageContextEnabled ? 'Context ON' : 'Context'}
+      </button>
+    `;
+    menu.appendChild(footer);
+
+    footer.querySelector('#s2ai-compare-toggle').addEventListener('click', (e) => {
+      e.stopPropagation();
+      compareMode = !compareMode;
+      e.currentTarget.classList.toggle('active', compareMode);
+      e.currentTarget.textContent = compareMode ? '⚡ Compare ON' : '⚡ Compare';
+    });
+
+    footer.querySelector('#s2ai-context-toggle').addEventListener('click', (e) => {
+      e.stopPropagation();
+      pageContextEnabled = !pageContextEnabled;
+      e.currentTarget.classList.toggle('active', pageContextEnabled);
+    });
+
+    document.body.appendChild(menu);
+    actionMenu = menu;
+
+    // Position
+    positionElement(menu, x, y);
+
+    // Close on outside click
+    setTimeout(() => {
+      document.addEventListener('click', handleOutsideClick, { once: true, capture: true });
+    }, 10);
   }
 
-  // Icons
-  const Icons = (() => {
-    const base = (d, size = 20) =>
-      `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`
+  function buildActionList(suggested, detection) {
+    const suggestedSet = new Set(suggested);
+    const allGeneral = ['summarize', 'explain', 'answer', 'what-is', 'custom'];
+    const allCode = ['explain-code', 'find-bugs', 'refactor', 'add-comments', 'convert-language'];
+    const allRewrite = ['translate', 'rewrite-pro', 'rewrite-casual', 'rewrite-concise'];
+
+    const result = [];
+
+    // Suggested actions first (highlighted)
+    const topSuggested = suggested.slice(0, 3);
+    for (const a of topSuggested) {
+      result.push({ id: a, suggested: true });
+    }
+
+    // Divider
+    result.push({ divider: true, label: 'All Actions' });
+
+    // Remaining general actions
+    for (const a of allGeneral) {
+      if (!topSuggested.includes(a)) result.push({ id: a });
+    }
+
+    // Code actions if code detected
+    if (detection.type === ContentType.CODE || detection.confidence > 0.5) {
+      result.push({ divider: true, label: 'Code' });
+      for (const a of allCode) {
+        if (!topSuggested.includes(a)) result.push({ id: a });
+      }
+    }
+
+    // Rewrite section
+    result.push({ divider: true, label: 'Rewrite' });
+    for (const a of allRewrite) {
+      result.push({ id: a });
+    }
+
+    return result;
+  }
+
+  // ── Handle Action ─────────────────────────────────────────────
+  async function handleAction(action, selectedText, detection) {
+    removeActionMenu();
+
+    // Special: custom question → show input first
+    if (action === 'custom') {
+      showPanel('custom', selectedText, detection);
+      return;
+    }
+
+    // Special: convert-language → ask for target language
+    if (action === 'convert-language') {
+      showLanguagePicker(action, selectedText, detection);
+      return;
+    }
+
+    // Special: translate → ask for target language
+    if (action === 'translate') {
+      showLanguagePicker(action, selectedText, detection);
+      return;
+    }
+
+    showPanel(action, selectedText, detection);
+    await executeQuery(action, selectedText, {}, detection);
+  }
+
+  async function handleTemplateAction(template, selectedText) {
+    removeActionMenu();
+    const prompt = applyTemplate(template, {
+      selection: selectedText,
+      url: location.href,
+      title: document.title
+    });
+
+    showPanel('custom', selectedText, null, template.name);
+    await executeQuery('custom', selectedText, { customPrompt: prompt }, null);
+  }
+
+  function showLanguagePicker(action, selectedText, detection) {
+    const langs = action === 'convert-language'
+      ? ['Python', 'JavaScript', 'TypeScript', 'Java', 'C++', 'Go', 'Rust', 'C#', 'Ruby', 'PHP', 'Swift', 'Kotlin']
+      : ['Spanish', 'French', 'German', 'Chinese', 'Japanese', 'Arabic', 'Hindi', 'Portuguese', 'Italian', 'Russian', 'Korean'];
+
+    showPanel(action, selectedText, detection);
+
+    const panel = document.getElementById('s2ai-panel');
+    if (!panel) return;
+
+    const body = panel.querySelector('.s2ai-panel-body');
+    body.innerHTML = `
+      <div class="s2ai-lang-picker">
+        <p class="s2ai-lang-picker-label">${action === 'convert-language' ? 'Convert to:' : 'Translate to:'}</p>
+        <div class="s2ai-lang-grid">
+          ${langs.map(l => `<button class="s2ai-lang-btn" data-lang="${l}">${l}</button>`).join('')}
+        </div>
+        <div class="s2ai-custom-lang">
+          <input type="text" class="s2ai-lang-input" placeholder="Other language…" />
+          <button class="s2ai-lang-confirm-btn">→</button>
+        </div>
+      </div>
+    `;
+
+    body.querySelectorAll('.s2ai-lang-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const lang = btn.dataset.lang;
+        body.innerHTML = '<div class="s2ai-loading"><div class="s2ai-typing-dots"><span></span><span></span><span></span></div></div>';
+        await executeQuery(action, selectedText, { targetLanguage: lang }, detection);
+      });
+    });
+
+    const langInput = body.querySelector('.s2ai-lang-input');
+    body.querySelector('.s2ai-lang-confirm-btn').addEventListener('click', async () => {
+      const lang = langInput.value.trim();
+      if (!lang) return;
+      body.innerHTML = '<div class="s2ai-loading"><div class="s2ai-typing-dots"><span></span><span></span><span></span></div></div>';
+      await executeQuery(action, selectedText, { targetLanguage: lang }, detection);
+    });
+  }
+
+  // ── Execute AI Query ──────────────────────────────────────────
+  async function executeQuery(action, selectedText, options = {}, detection = null) {
+    if (isProcessing) return;
+    isProcessing = true;
+
+    lastAction = action;
+    lastPrompt = options.customPrompt || buildPrompt(action, selectedText, options);
+
+    const pageCtx = pageContextEnabled ? getPageContext() : null;
+    const convHistory = chatHistory.getHistory(currentTabKey);
+
+    // Compare mode
+    if (compareMode && action !== 'custom') {
+      await runCompareMode(lastPrompt, pageCtx);
+      isProcessing = false;
+      return;
+    }
+
+    const panel = document.getElementById('s2ai-panel');
+    if (!panel) { isProcessing = false; return; }
+
+    const answerArea = panel.querySelector('.s2ai-answer-area');
+    if (answerArea) {
+      answerArea.innerHTML = '<div class="s2ai-loading"><div class="s2ai-typing-dots"><span></span><span></span><span></span></div></div>';
+    }
+
+    const useStreaming = settings.streamingEnabled !== false;
+
+    try {
+      if (useStreaming) {
+        await executeStreamingQuery(lastPrompt, pageCtx, convHistory, panel);
+      } else {
+        await executeNonStreamingQuery(lastPrompt, pageCtx, convHistory, panel);
+      }
+    } catch (e) {
+      showError(e.message, panel);
+    }
+
+    isProcessing = false;
+  }
+
+  async function executeStreamingQuery(prompt, pageCtx, convHistory, panelEl) {
+    const streamId = `stream_${Date.now()}`;
+    streamingChunks[streamId] = '';
+
+    const answerArea = panelEl.querySelector('.s2ai-answer-area');
+
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        type: 'QUERY_AI_STREAM',
+        prompt,
+        model: settings.model,
+        pageContext: pageCtx,
+        conversationHistory: convHistory,
+        streamId,
+        action: lastAction
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        if (response?.error) {
+          reject(new Error(response.error));
+          return;
+        }
+        // Streaming started - wait for STREAM_DONE
+      });
+
+      const onDone = (event) => {
+        if (event.detail?.streamId !== streamId) return;
+        document.removeEventListener('s2ai-stream-done', onDone);
+        document.removeEventListener('s2ai-stream-chunk', onChunk);
+
+        lastResponseContent = event.detail.fullContent || streamingChunks[streamId];
+        delete streamingChunks[streamId];
+
+        chatHistory.addTurn(currentTabKey, prompt, lastResponseContent);
+        renderFinalResponse(lastResponseContent, panelEl);
+        resolve();
+      };
+
+      const onChunk = (event) => {
+        if (event.detail?.streamId !== streamId) return;
+        streamingChunks[streamId] += event.detail.chunk;
+        if (answerArea) {
+          answerArea.innerHTML = renderMarkdown(streamingChunks[streamId]);
+          answerArea.scrollTop = answerArea.scrollHeight;
+        }
+      };
+
+      document.addEventListener('s2ai-stream-done', onDone);
+      document.addEventListener('s2ai-stream-chunk', onChunk);
+
+      // Timeout fallback
+      setTimeout(() => {
+        document.removeEventListener('s2ai-stream-done', onDone);
+        document.removeEventListener('s2ai-stream-chunk', onChunk);
+        reject(new Error('Response timeout. Please try again.'));
+      }, 60000);
+    });
+  }
+
+  async function executeNonStreamingQuery(prompt, pageCtx, convHistory, panelEl) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        type: 'QUERY_AI',
+        prompt,
+        model: settings.model,
+        pageContext: pageCtx,
+        conversationHistory: convHistory,
+        action: lastAction
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        if (response?.error) {
+          reject(new Error(response.error));
+          return;
+        }
+        lastResponseContent = response.content || '';
+        chatHistory.addTurn(currentTabKey, prompt, lastResponseContent);
+        renderFinalResponse(lastResponseContent, panelEl);
+        resolve();
+      });
+    });
+  }
+
+  function renderFinalResponse(content, panelEl) {
+    const answerArea = panelEl.querySelector('.s2ai-answer-area');
+    if (!answerArea) return;
+
+    answerArea.innerHTML = renderMarkdown(content);
+    renderKaTeX(answerArea);
+
+    // Add response toolbar
+    const existingToolbar = panelEl.querySelector('.s2ai-response-toolbar');
+    if (existingToolbar) existingToolbar.remove();
+
+    const toolbar = createResponseToolbar({
+      content,
+      prompt: lastPrompt,
+      action: lastAction,
+      onSaveKB: () => showToast('✅ Saved to Knowledge Base', panelEl)
+    });
+
+    const body = panelEl.querySelector('.s2ai-panel-body');
+    if (body) body.appendChild(toolbar);
+
+    // Update chat turn indicator
+    const turnCount = chatHistory.getTurnCount(currentTabKey);
+    const turnEl = panelEl.querySelector('.s2ai-turn-count');
+    if (turnEl) turnEl.textContent = `${turnCount} turn${turnCount !== 1 ? 's' : ''}`;
+
+    // Show follow-up input
+    const followUp = panelEl.querySelector('.s2ai-followup-area');
+    if (followUp) followUp.style.display = 'flex';
+  }
+
+  // ── Compare Mode ──────────────────────────────────────────────
+  async function runCompareMode(prompt, pageCtx) {
+    const panelEl = document.getElementById('s2ai-panel');
+    if (!panelEl) return;
+
+    const body = panelEl.querySelector('.s2ai-panel-body');
+
+    // Show compare UI
+    body.innerHTML = buildComparePanelHTML(compareModeModels.a, compareModeModels.b);
+    panelEl.classList.add('s2ai-panel--compare');
+
+    compareStreamContent = { a: '', b: '' };
+
+    const streamIdA = `compare_a_${Date.now()}`;
+    const streamIdB = `compare_b_${Date.now()}`;
+    const paneA = body.querySelector('#s2ai-compare-pane-a');
+    const paneB = body.querySelector('#s2ai-compare-pane-b');
+
+    const sendQuery = (model, streamId) => {
+      chrome.runtime.sendMessage({
+        type: 'QUERY_AI_STREAM',
+        prompt,
+        model,
+        pageContext: pageCtx,
+        streamId,
+        autoSave: false
+      }, () => {});
+    };
+
+    sendQuery(compareModeModels.a, streamIdA);
+    sendQuery(compareModeModels.b, streamIdB);
+
+    const onChunk = (e) => {
+      const { streamId, chunk } = e.detail || {};
+      if (streamId === streamIdA) {
+        compareStreamContent.a += chunk;
+        if (paneA) paneA.innerHTML = renderMarkdown(compareStreamContent.a);
+      } else if (streamId === streamIdB) {
+        compareStreamContent.b += chunk;
+        if (paneB) paneB.innerHTML = renderMarkdown(compareStreamContent.b);
+      }
+    };
+
+    const onDone = (e) => {
+      const { streamId } = e.detail || {};
+      if (streamId === streamIdA) paneA?.classList.add('s2ai-compare-pane--done');
+      else if (streamId === streamIdB) paneB?.classList.add('s2ai-compare-pane--done');
+
+      if (paneA?.classList.contains('s2ai-compare-pane--done') &&
+          paneB?.classList.contains('s2ai-compare-pane--done')) {
+        document.removeEventListener('s2ai-stream-chunk', onChunk);
+        document.removeEventListener('s2ai-stream-done', onDone);
+      }
+    };
+
+    document.addEventListener('s2ai-stream-chunk', onChunk);
+    document.addEventListener('s2ai-stream-done', onDone);
+  }
+
+  // ── Panel ─────────────────────────────────────────────────────
+  function showPanel(action, selectedText, detection, customTitle = null) {
+    removePanel();
+
+    const panelEl = document.createElement('div');
+    panelEl.id = 's2ai-panel';
+    panelEl.className = 's2ai-panel';
+    panelEl.setAttribute('role', 'dialog');
+    panelEl.setAttribute('aria-label', 'Select2AI Response');
+
+    const actionMeta = getActionMeta(action);
+    const title = customTitle || actionMeta.label;
+
+    panelEl.innerHTML = `
+      <div class="s2ai-panel-header">
+        <div class="s2ai-panel-title">
+          <span class="s2ai-panel-icon">${actionMeta.icon}</span>
+          <span class="s2ai-panel-title-text">${escapeHtml(title)}</span>
+          ${detection ? `<span class="s2ai-type-chip s2ai-type-chip--${detection.type}">${getTypeIcon(detection.type)} ${detection.wordCount}w</span>` : ''}
+        </div>
+        <div class="s2ai-panel-controls">
+          <button class="s2ai-ctrl-btn" id="s2ai-context-btn" title="${pageContextEnabled ? 'Page context ON' : 'Page context OFF'}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </button>
+          <button class="s2ai-ctrl-btn" id="s2ai-chat-clear-btn" title="Clear conversation">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
+            </svg>
+          </button>
+          <button class="s2ai-ctrl-btn s2ai-close-btn" id="s2ai-panel-close" title="Close (Esc)" aria-label="Close">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="s2ai-selected-preview">
+        <div class="s2ai-selected-text">${escapeHtml(selectedText.slice(0, 200))}${selectedText.length > 200 ? '…' : ''}</div>
+        <div class="s2ai-turn-count" title="Conversation turns">0 turns</div>
+      </div>
+
+      <div class="s2ai-panel-body">
+        ${action === 'custom' ? `
+          <div class="s2ai-custom-input-area">
+            <textarea class="s2ai-custom-textarea" placeholder="Ask anything about the selected text…" rows="3"></textarea>
+            <button class="s2ai-send-btn" id="s2ai-custom-send">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+              Ask
+            </button>
+          </div>
+          <div class="s2ai-answer-area"></div>
+        ` : `
+          <div class="s2ai-answer-area">
+            <div class="s2ai-loading">
+              <div class="s2ai-typing-dots"><span></span><span></span><span></span></div>
+            </div>
+          </div>
+        `}
+
+        <div class="s2ai-followup-area" style="display:none">
+          <input type="text" class="s2ai-followup-input" placeholder="Follow-up question…" />
+          <button class="s2ai-followup-send" title="Send follow-up">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="s2ai-panel-footer">
+        <span class="s2ai-model-indicator">${escapeHtml(settings.model || 'gpt-4o-mini')}</span>
+        ${pageContextEnabled ? '<span class="s2ai-context-indicator">📄 Page context</span>' : ''}
+        <span class="s2ai-powered">⚡ GitHub Models</span>
+      </div>
+    `;
+
+    document.body.appendChild(panelEl);
+    panel = panelEl;
+
+    // Position panel (center + offset from viewport edge)
+    positionPanel(panelEl);
+
+    // Wire up events
+    panelEl.querySelector('#s2ai-panel-close').addEventListener('click', removePanel);
+
+    const ctxBtn = panelEl.querySelector('#s2ai-context-btn');
+    ctxBtn.classList.toggle('s2ai-ctrl-btn--active', pageContextEnabled);
+    ctxBtn.addEventListener('click', () => {
+      pageContextEnabled = !pageContextEnabled;
+      ctxBtn.classList.toggle('s2ai-ctrl-btn--active', pageContextEnabled);
+      ctxBtn.title = pageContextEnabled ? 'Page context ON' : 'Page context OFF';
+      showToast(pageContextEnabled ? '📄 Page context ON' : 'Page context OFF', panelEl);
+    });
+
+    panelEl.querySelector('#s2ai-chat-clear-btn').addEventListener('click', () => {
+      chatHistory.clearTab(currentTabKey);
+      const turnEl = panelEl.querySelector('.s2ai-turn-count');
+      if (turnEl) turnEl.textContent = '0 turns';
+      const followUp = panelEl.querySelector('.s2ai-followup-area');
+      if (followUp) followUp.style.display = 'none';
+      showToast('🔄 Conversation cleared', panelEl);
+    });
+
+    // Custom question send
+    if (action === 'custom') {
+      const textarea = panelEl.querySelector('.s2ai-custom-textarea');
+      const sendBtn = panelEl.querySelector('#s2ai-custom-send');
+
+      const doSend = async () => {
+        const q = textarea.value.trim();
+        if (!q) return;
+        textarea.value = '';
+        panelEl.querySelector('.s2ai-answer-area').innerHTML =
+          '<div class="s2ai-loading"><div class="s2ai-typing-dots"><span></span><span></span><span></span></div></div>';
+        await executeQuery('custom', selectedText, { customPrompt: `${q}\n\nContext:\n${selectedText}` }, detection);
+      };
+
+      sendBtn.addEventListener('click', doSend);
+      textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) doSend();
+      });
+      textarea.focus();
+    }
+
+    // Follow-up input
+    const followupInput = panelEl.querySelector('.s2ai-followup-input');
+    const followupSend = panelEl.querySelector('.s2ai-followup-send');
+
+    const sendFollowup = async () => {
+      const q = followupInput.value.trim();
+      if (!q || isProcessing) return;
+      followupInput.value = '';
+      panelEl.querySelector('.s2ai-answer-area').innerHTML =
+        '<div class="s2ai-loading"><div class="s2ai-typing-dots"><span></span><span></span><span></span></div></div>';
+      const existingToolbar = panelEl.querySelector('.s2ai-response-toolbar');
+      if (existingToolbar) existingToolbar.remove();
+      await executeQuery('custom', selectedText, { customPrompt: q }, detection);
+    };
+
+    followupSend.addEventListener('click', sendFollowup);
+    followupInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendFollowup();
+    });
+
+    // Make draggable
+    makeDraggable(panelEl, panelEl.querySelector('.s2ai-panel-header'));
+
+    // GSAP animation
+    if (window.gsap) {
+      gsap.fromTo(panelEl,
+        { opacity: 0, y: 20, scale: 0.97 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.25, ease: 'power2.out' }
+      );
+    } else {
+      panelEl.style.opacity = '1';
+    }
+  }
+
+  // ── Page context ──────────────────────────────────────────────
+  function getPageContext() {
+    const metaDesc = document.querySelector('meta[name="description"]');
     return {
-      sparkles: base("M12 3l1.8 3.9L18 8.7l-3.6 3.3L15 18l-3-1.9L9 18l.6-6L6 8.7l4.2-1.8L12 3z"),
-      x: base("M18 6L6 18M6 6l12 12"),
-      send: base("M22 2L11 13 M22 2l-7 20-4-9-9-4 20-7z"),
-      info: base("M13 16h-1v-4h-1M12 8h.01"),
-      help: base("M9 9a3 3 0 1 1 3 3v1M12 17h.01"),
-      text: base("M4 7V5h16v2M4 13v-2h16v2M4 19v-2h16v2"),
-      sun: base("M12 4V2m0 20v-2M4.93 4.93L3.51 3.51m16.98 16.98l-1.42-1.42M4 12H2m20 0h-2M4.93 19.07L3.51 20.49m16.98-16.98l-1.42 1.42m-6.57 3.07a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"),
-      moon: base("M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"),
-      loader: base("M21 12a9 9 0 1 1-9-9", 22),
-      edit: base("M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"),
+      title: document.title,
+      url: location.href,
+      description: metaDesc?.getAttribute('content') || ''
+    };
+  }
+
+  // ── Positioning ───────────────────────────────────────────────
+  function positionElement(el, x, y) {
+    el.style.position = 'fixed';
+    el.style.zIndex = '2147483647';
+    el.style.visibility = 'hidden';
+    el.style.display = 'block';
+
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    let left = x + 10;
+    let top = y + 10;
+
+    if (left + rect.width > vw - 10) left = vw - rect.width - 10;
+    if (top + rect.height > vh - 10) top = y - rect.height - 10;
+    if (left < 10) left = 10;
+    if (top < 10) top = 10;
+
+    el.style.left = `${left}px`;
+    el.style.top = `${top}px`;
+    el.style.visibility = '';
+  }
+
+  function positionPanel(panelEl) {
+    panelEl.style.position = 'fixed';
+    panelEl.style.zIndex = '2147483646';
+    panelEl.style.right = '20px';
+    panelEl.style.top = '80px';
+  }
+
+  // ── Draggable ─────────────────────────────────────────────────
+  function makeDraggable(el, handle) {
+    let startX, startY, origLeft, origTop;
+    let isDragging = false;
+
+    handle.style.cursor = 'grab';
+
+    handle.addEventListener('mousedown', (e) => {
+      if (e.target.closest('button')) return;
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      const rect = el.getBoundingClientRect();
+      origLeft = rect.left;
+      origTop = rect.top;
+      el.style.right = 'auto';
+      el.style.left = `${origLeft}px`;
+      el.style.top = `${origTop}px`;
+      handle.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      el.style.left = `${Math.max(0, origLeft + dx)}px`;
+      el.style.top = `${Math.max(0, origTop + dy)}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        handle.style.cursor = 'grab';
+      }
+    });
+  }
+
+  // ── Remove helpers ────────────────────────────────────────────
+  function removeActionMenu() {
+    if (actionMenu) {
+      actionMenu.remove();
+      actionMenu = null;
     }
-  })()
+  }
 
-  // Markdown renderer
-  function renderMarkdown(md) {
-    if (!md) return ""
-
-    // 1) Extract fenced code blocks and display-math blocks and replace with placeholders
-    const codeBlocks = []
-    const mathBlocks = []
-    // display math $$...$$
-    md = md.replace(/\$\$([\s\S]*?)\$\$/g, (_, tex) => {
-      const idx = mathBlocks.length
-      mathBlocks.push({ display: true, tex })
-      return `@@MATHBLOCK_${idx}@@`
-    })
-
-    md = md.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
-      const idx = codeBlocks.length
-      codeBlocks.push({ lang: lang || "", code })
-      return `@@CODEBLOCK_${idx}@@`
-    })
-
-    // 2) Process the remaining markdown line-by-line into HTML blocks
-    const lines = md.split(/\r?\n/)
-    const out = []
-    let inList = false
-
-    function closeListIfOpen() {
-      if (inList) {
-        out.push("</ul>")
-        inList = false
+  function removePanel() {
+    if (panel) {
+      if (window.gsap) {
+        gsap.to(panel, {
+          opacity: 0, y: 10, scale: 0.97, duration: 0.18,
+          ease: 'power2.in',
+          onComplete: () => { panel?.remove(); panel = null; }
+        });
+      } else {
+        panel.remove();
+        panel = null;
       }
     }
+  }
 
-    for (let rawLine of lines) {
-      const line = rawLine.replace(/\t/g, "    ")
-
-      // Code block placeholder
-      const cb = line.match(/^@@CODEBLOCK_(\d+)@@$/)
-      if (cb) {
-        closeListIfOpen()
-        out.push(line) // keep placeholder for later restoration
-        continue
-      }
-
-      // Headings (# - up to ######)
-      const h = line.match(/^\s{0,3}(#{1,6})\s+(.*)$/)
-      if (h) {
-        closeListIfOpen()
-        const level = Math.min(6, h[1].length)
-        out.push(`<h${level}>${escapeHtml(h[2].trim())}</h${level}>`)
-        continue
-      }
-
-      // Unordered list item (-, *, +)
-      const li = line.match(/^\s*[-*+]\s+(.*)$/)
-      if (li) {
-        if (!inList) {
-          out.push("<ul>")
-          inList = true
-        }
-        out.push(`<li>${inlineEscapeAndFormat(li[1].trim())}</li>`)
-        continue
-      }
-
-      // Blank line
-      if (line.trim() === "") {
-        closeListIfOpen()
-        out.push("")
-        continue
-      }
-
-      // Table row detection (simple GFM table support). Collect contiguous table lines.
-      if (/\|/.test(line) && line.trim().startsWith("|")) {
-        closeListIfOpen()
-        // collect until a non-table line
-        const tableLines = [line]
-        let nextIndex = lines.indexOf(rawLine) + 1
-        while (nextIndex < lines.length && /\|/.test(lines[nextIndex]) && lines[nextIndex].trim().startsWith("|")) {
-          tableLines.push(lines[nextIndex].replace(/\t/g, "    "))
-          nextIndex++
-        }
-        // move iterator forward
-        for (let k = 0; k < tableLines.length - 1; k++) lines.shift()
-
-        // parse header and rows
-        const cols = tableLines[0].split("|").map(s => s.trim()).filter(Boolean)
-        const rows = tableLines.slice(1).map(r => r.split("|").map(s => s.trim()).filter(Boolean))
-        let tbl = ['<table class="aixt-table">', '<thead><tr>']
-        cols.forEach(c => tbl.push(`<th>${escapeHtml(c)}</th>`))
-        tbl.push('</tr></thead><tbody>')
-        rows.forEach(r => {
-          tbl.push('<tr>')
-          r.forEach(c => tbl.push(`<td>${inlineEscapeAndFormat(c)}</td>`))
-          tbl.push('</tr>')
-        })
-        tbl.push('</tbody></table>')
-        out.push(tbl.join(''))
-        continue
-      }
-
-      // Paragraph
-      out.push(`<p>${inlineEscapeAndFormat(line.trim())}</p>`)
+  function handleOutsideClick(e) {
+    if (actionMenu && !actionMenu.contains(e.target)) {
+      removeActionMenu();
     }
+  }
 
-    closeListIfOpen()
+  // ── Toast notification ────────────────────────────────────────
+  function showToast(message, container) {
+    const existing = document.getElementById('s2ai-toast');
+    if (existing) existing.remove();
 
-    let html = out.join("\n")
+    const toast = document.createElement('div');
+    toast.id = 's2ai-toast';
+    toast.className = 's2ai-toast';
+    toast.textContent = message;
+    (container || document.body).appendChild(toast);
 
-    // 3) Restore fenced code blocks and display-math from placeholders
-    html = html.replace(/@@CODEBLOCK_(\d+)@@/g, (_, idx) => {
-      const cb = codeBlocks[Number(idx)]
-      const langClass = cb.lang ? ` class="lang-${escapeHtml(cb.lang)}"` : ""
-      return `<pre class="aixt-pre"><code${langClass}>${escapeHtml(cb.code)}</code></pre>`
-    })
+    setTimeout(() => {
+      toast.classList.add('s2ai-toast--visible');
+      setTimeout(() => {
+        toast.classList.remove('s2ai-toast--visible');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }, 10);
+  }
 
-    html = html.replace(/@@MATHBLOCK_(\d+)@@/g, (_, idx) => {
-      const mb = mathBlocks[Number(idx)]
-      if (!mb) return ''
-      return renderMathBlock(mb.tex, true)
-    })
+  function showError(message, panelEl) {
+    const answerArea = panelEl?.querySelector('.s2ai-answer-area');
+    if (answerArea) {
+      answerArea.innerHTML = `<div class="s2ai-error"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span>${escapeHtml(message)}</span></div>`;
+    }
+  }
 
-    return html
+  // ── Helpers ───────────────────────────────────────────────────
+  function getTypeIcon(type) {
+    const icons = {
+      code: '💻', question: '❓', url: '🔗', math: '🧮', table: '📊', prose: '📄'
+    };
+    return icons[type] || '📄';
+  }
+
+  function capitalize(s) {
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
   }
 
   function escapeHtml(str) {
-    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  function sanitizeHref(href) {
-    if (!href) return "#"
-    const s = String(href).trim()
-    if (/^javascript:/i.test(s)) return "#"
-    return escapeHtml(s)
-  }
+  // ── Text Selection Handler ─────────────────────────────────────
+  let selectionTimeout = null;
 
-  // Inline parser: escapes text and replaces inline markdown tokens (code, links, bold, italic)
-  function inlineEscapeAndFormat(raw) {
-    if (!raw) return ""
+  document.addEventListener('mouseup', (e) => {
+    if (panel?.contains(e.target) || actionMenu?.contains(e.target)) return;
 
-    // 1) Extract inline math $...$ (not $$) to placeholders to avoid conflicts
-    const mathInline = []
-    let text = raw.replace(/\$(?!\$)([^$\n]+?)\$/g, (_, tex) => {
-      const id = mathInline.length
-      mathInline.push(tex)
-      return `@@INLINE_MATH_${id}@@`
-    })
+    clearTimeout(selectionTimeout);
+    selectionTimeout = setTimeout(async () => {
+      const selection = window.getSelection();
+      const selectedText = selection?.toString().trim();
 
-    let result = ""
-    let lastIndex = 0
-    const pattern = /(`[^`]+`)|(\*\*[\s\S]+?\*\*)|(\*[^*]+\*)|(\[[^\]]+\]\([^\)]+\))/g
-    let m
-    while ((m = pattern.exec(text)) !== null) {
-      const idx = m.index
-      if (idx > lastIndex) {
-        result += escapeHtml(text.slice(lastIndex, idx))
+      if (!selectedText || selectedText.length < 3) {
+        removeActionMenu();
+        return;
       }
 
-      const token = m[0]
-      if (m[1]) {
-        const content = token.slice(1, -1)
-        result += `<code class="aixt-code">${escapeHtml(content)}</code>`
-      } else if (m[2]) {
-        const content = token.slice(2, -2)
-        result += `<strong>${escapeHtml(content)}</strong>`
-      } else if (m[3]) {
-        const content = token.slice(1, -1)
-        result += `<em>${escapeHtml(content)}</em>`
-      } else if (m[4]) {
-        const parts = token.match(/^\[([^\]]+)\]\(([^\)]+)\)$/)
-        if (parts) {
-          const label = parts[1]
-          const href = parts[2]
-          result += `<a href="${sanitizeHref(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`
-        } else {
-          result += escapeHtml(token)
-        }
-      } else {
-        result += escapeHtml(token)
-      }
+      currentSelection = selectedText;
+      currentDetection = detectContentType(selectedText);
 
-      lastIndex = idx + token.length
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      showActionMenu(rect.right, rect.bottom, selectedText, currentDetection);
+    }, 200);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      removeActionMenu();
+      removePanel();
     }
+  });
 
-    if (lastIndex < text.length) {
-      result += escapeHtml(text.slice(lastIndex))
+  // ── Streaming message listener ────────────────────────────────
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message.type === 'STREAM_CHUNK') {
+      document.dispatchEvent(new CustomEvent('s2ai-stream-chunk', {
+        detail: { streamId: message.streamId, chunk: message.chunk }
+      }));
+    } else if (message.type === 'STREAM_DONE') {
+      document.dispatchEvent(new CustomEvent('s2ai-stream-done', {
+        detail: { streamId: message.streamId, fullContent: message.fullContent, model: message.model }
+      }));
     }
+  });
 
-    // 2) Restore inline math placeholders
-    result = result.replace(/@@INLINE_MATH_(\d+)@@/g, (_, id) => {
-      const tex = mathInline[Number(id)]
-      return renderMathBlock(tex, false)
-    })
+  // ── Context menu & command event listeners ────────────────────
+  window.addEventListener('select2ai-context-action', async (e) => {
+    const { action, selectionText } = e.detail;
+    if (action === 'summarize-page') {
+      const pageText = document.body.innerText?.slice(0, 8000) || '';
+      showPanel('summarize', pageText, null, 'Summarize Page');
+      await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          type: 'SUMMARIZE_PAGE',
+          pageText,
+          action: 'summarize-page'
+        }, (response) => {
+          if (response?.error) { showError(response.error, panel); reject(); }
+          else {
+            lastResponseContent = response.content || '';
+            renderFinalResponse(lastResponseContent, panel);
+            resolve();
+          }
+        });
+      });
+    } else if (selectionText) {
+      const detection = detectContentType(selectionText);
+      showPanel(action, selectionText, detection);
+      await executeQuery(action, selectionText, {}, detection);
+    }
+  });
 
-    return result
-  }
-
-  // KaTeX loader + renderer
-  let _katexLoaded = false
-  let _katexLoading = null
-  async function ensureKatexLoaded() {
-    if (_katexLoaded) return true
-    if (_katexLoading) return _katexLoading
-
-    _katexLoading = new Promise((resolve) => {
-      // Try loading KaTeX from extension files first to avoid page CSP blocking external CDNs.
-      const localCss = chrome.runtime.getURL('vendor/katex.min.css')
-      const localJs = chrome.runtime.getURL('vendor/katex.min.js')
-
-      try {
-        const css = document.createElement('link')
-        css.rel = 'stylesheet'
-        css.href = localCss
-        document.head.appendChild(css)
-      } catch (e) {
-        // continue even if CSS fails
+  window.addEventListener('select2ai-command', (e) => {
+    const { command } = e.detail;
+    if (command === 'open-action-menu') {
+      const selection = window.getSelection();
+      const text = selection?.toString().trim();
+      if (text && text.length >= 3) {
+        const detection = detectContentType(text);
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        showActionMenu(rect.right, rect.bottom, text, detection);
       }
-
-      const s = document.createElement('script')
-      s.src = localJs
-      s.onload = () => {
-        _katexLoaded = !!window.katex
-        if (_katexLoaded) return resolve(true)
-
-        // Local file loaded but did not expose KaTeX. Use fallback to avoid CDN attempts.
-        console.warn('KaTeX local file loaded but window.katex is not defined. Using fallback renderer.')
-        return resolve(false)
-      }
-      s.onerror = () => {
-        // Local load failed (file missing or blocked). Do NOT attempt CDN on pages with strict CSP;
-        // instead use the lightweight fallback renderer to avoid additional CSP errors.
-        console.warn('KaTeX local file could not be loaded (missing or blocked by CSP). Using fallback renderer.')
-        return resolve(false)
-      }
-      document.head.appendChild(s)
-    })
-
-    return _katexLoading
-  }
-
-  // No CDN fallback: to avoid CSP violations on pages that block external scripts,
-  // the extension prefers loading KaTeX from the extension's `vendor/` folder.
-  // If those files are missing or blocked, a safe in-extension fallback will be used.
-
-  function renderMathBlock(tex, displayMode = false) {
-    if (window.katex && window.katex.renderToString) {
-      try {
-        return window.katex.renderToString(tex, { throwOnError: false, displayMode })
-      } catch (e) {
-        return `<pre class="aixt-pre"><code>${escapeHtml(tex)}</code></pre>`
+    } else if (command === 'save-to-kb') {
+      if (lastResponseContent) {
+        saveToKB({ snippet: lastResponseContent, prompt: lastPrompt, action: lastAction })
+          .then(() => showToast('✅ Saved to Knowledge Base'));
       }
     }
-    // fallback: show raw escaped TeX inside code block
-    return `<pre class="aixt-pre"><code>${escapeHtml(tex)}</code></pre>`
-  }
+  });
 
-  // Create Shadow Root
-  const host = document.createElement("div")
-  host.id = SHADOW_ID
-  host.style.all = "initial"
-  const shadow = host.attachShadow({ mode: "open" })
-  document.documentElement.appendChild(host)
+  // ── Page Summarize from context menu (no selection) ───────────
+  window.addEventListener('select2ai-context-action', (e) => {}, { once: false });
 
-  const styleEl = document.createElement("style")
-  styleEl.textContent = "/* loading styles... */"
-  shadow.appendChild(styleEl)
-
-  // Root UI
-  const root = document.createElement("div")
-  root.className = "aixt-root"
-  root.innerHTML = `
-    <div class="aixt-bubble" role="button" aria-label="Ask AI" title="Ask AI" style="display: none;">
-      <span class="aixt-ico">${Icons.sparkles}</span>
-    </div>
-
-    <div class="aixt-dropdown" role="menu" style="display: none;">
-      <button class="aixt-menu-item" data-action="summarize">
-        <span class="aixt-ico">${Icons.text}</span>
-        <span>Summarize</span>
-      </button>
-      <button class="aixt-menu-item" data-action="explain">
-        <span class="aixt-ico">${Icons.info}</span>
-        <span>Explain</span>
-      </button>
-      <button class="aixt-menu-item" data-action="answer">
-        <span class="aixt-ico">${Icons.help}</span>
-        <span>Answer</span>
-      </button>
-      <button class="aixt-menu-item" data-action="what">
-        <span class="aixt-ico">${Icons.info}</span>
-        <span>What is it?</span>
-      </button>
-      <button class="aixt-menu-item" data-action="custom">
-        <span class="aixt-ico">${Icons.edit}</span>
-        <span>Custom Question</span>
-      </button>
-    </div>
-
-    <div class="aixt-panel" role="dialog" aria-modal="true" style="display: none;">
-      <div class="aixt-header">
-        <div class="aixt-title" id="aixt-title">AI Assistant</div>
-        <div class="aixt-actions">
-          <button class="aixt-theme" title="Toggle theme" aria-label="Toggle theme">${Icons.sun}</button>
-          <button class="aixt-close" title="Close" aria-label="Close">${Icons.x}</button>
-        </div>
-      </div>
-
-      <div class="aixt-content">
-        <div class="aixt-custom-input" style="display: none;">
-          <label class="aixt-label">
-            Your question
-            <input type="text" class="aixt-input" placeholder="e.g., Extract key points..." data-custom-q />
-          </label>
-          <button class="aixt-primary" data-submit-custom>${Icons.send}<span>Ask</span></button>
-        </div>
-
-        <div class="aixt-answer-section" style="display: none;">
-          <div class="aixt-answer-toolbar">
-            <button class="aixt-secondary" data-back>← Back</button>
-            <div class="aixt-model-info" data-model-info></div>
-          </div>
-          <div class="aixt-answer" data-answer>
-            <div class="aixt-empty">
-              <span class="aixt-ico aixt-spin">${Icons.loader}</span>
-              <span>Thinking...</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `
-  shadow.appendChild(root)
-
-  // Load CSS
-  fetch(CSS_URL)
-    .then((r) => r.text())
-    .then((css) => {
-      styleEl.textContent = css
-    })
-    .catch(() => {
-      styleEl.textContent = "/* CSS failed to load */"
-    })
-
-  // Elements
-  const bubble = root.querySelector(".aixt-bubble")
-  const dropdown = root.querySelector(".aixt-dropdown")
-  const panel = root.querySelector(".aixt-panel")
-  const themeBtn = root.querySelector(".aixt-theme")
-  const closeBtn = root.querySelector(".aixt-close")
-  const customInput = root.querySelector(".aixt-custom-input")
-  const customQ = root.querySelector("[data-custom-q]")
-  const submitCustom = root.querySelector("[data-submit-custom]")
-  const answerSection = root.querySelector(".aixt-answer-section")
-  const answerBox = root.querySelector("[data-answer]")
-  const backBtn = root.querySelector("[data-back]")
-  const modelInfo = root.querySelector("[data-model-info]")
-
-  // Event listeners
-  bubble.addEventListener("click", (e) => {
-    e.stopPropagation()
-    showDropdown()
-  })
-
-  root.querySelectorAll(".aixt-menu-item").forEach((btn) => {
-    btn.addEventListener("click", async (e) => {
-      e.stopPropagation()
-      const action = btn.getAttribute("data-action")
-      hideDropdown()
-      
-      if (action === "custom") {
-        showCustomInput()
-      } else {
-        await handleAction(action)
-      }
-    })
-  })
-
-  submitCustom.addEventListener("click", async () => {
-    await handleAction("custom", customQ.value.trim())
-  })
-
-  customQ.addEventListener("keydown", async (e) => {
-    if (e.key === "Enter") {
-      await handleAction("custom", customQ.value.trim())
-    }
-  })
-
-  backBtn.addEventListener("click", () => {
-    hidePanel()
-    hideBubble()
-    STATE.selectionText = ""
-  })
-
-  themeBtn.addEventListener("click", () => {
-    if (STATE.theme === "dark") {
-      STATE.theme = "light"
-      root.setAttribute("data-theme", "light")
-      themeBtn.innerHTML = Icons.sun
-    } else {
-      STATE.theme = "dark"
-      root.setAttribute("data-theme", "dark")
-      themeBtn.innerHTML = Icons.moon
-    }
-  })
-
-  closeBtn.addEventListener("click", () => {
-    hidePanel()
-    hideBubble()
-    STATE.selectionText = ""
-  })
-
-  // Click outside to close
-  document.addEventListener("click", (e) => {
-    if (!shadow.contains(e.target)) {
-      hideDropdown()
-    }
-  })
-
-  // Selection tracking
-  document.addEventListener("mouseup", handleSelectionChange)
-  document.addEventListener("keyup", (e) => {
-    if (e.key === "Shift" || e.key === "Control" || e.key === "Meta") return
-    handleSelectionChange()
-  })
-
-  // Load GSAP
-  loadGSAP()
-
-  function handleSelectionChange() {
-    const sel = window.getSelection()
-    const text = (sel && sel.toString()) || ""
-    
-    if (text.trim() && text.trim().length > 0) {
-      STATE.selectionText = text.slice(0, MAX_SELECTION_CHARS)
-      showBubbleNearSelection()
-    } else {
-      hideBubble()
-      hideDropdown()
-    }
-  }
-
-  function showBubbleNearSelection() {
-    const rect = getSelectionRect()
-    if (!rect) return
-
-    // Position bubble near the end (focus) of the selection — typically bottom-right of the caret
-    // Fallbacks and viewport clamps ensure the bubble stays visible.
-    const offset = 8
-    const bubbleSize = 60 // approximate bubble size for basic clamping
-    const rawX = (rect.right !== undefined && rect.right !== 0) ? rect.right + offset : rect.left + offset
-    const rawY = (rect.bottom !== undefined && rect.bottom !== 0) ? rect.bottom + offset : rect.top - offset
-
-    const viewportX = Math.min(Math.max(rawX, 8), window.innerWidth - bubbleSize)
-    const viewportY = Math.min(Math.max(rawY, 8), window.innerHeight - bubbleSize)
-    
-    bubble.style.position = "fixed"
-    bubble.style.left = `${viewportX}px`
-    bubble.style.top = `${viewportY}px`
-    bubble.style.display = "flex"
-    
-    if (window.gsap && gsapLoaded) {
-      window.gsap.fromTo(bubble, { scale: 0.8, opacity: 0 }, { duration: 0.2, scale: 1, opacity: 1, ease: "back.out(1.7)" })
-    }
-  }
-
-  function hideBubble() {
-    bubble.style.display = "none"
-  }
-
-  function showDropdown() {
-    const bubbleRect = bubble.getBoundingClientRect()
-    dropdown.style.position = "fixed"
-    dropdown.style.left = `${bubbleRect.left}px`
-    dropdown.style.top = `${bubbleRect.bottom + 8}px`
-    dropdown.style.display = "block"
-    STATE.showingMenu = true
-
-    if (window.gsap && gsapLoaded) {
-      window.gsap.fromTo(dropdown, { y: -10, opacity: 0 }, { duration: 0.2, y: 0, opacity: 1, ease: "power2.out" })
-    }
-  }
-
-  function hideDropdown() {
-    dropdown.style.display = "none"
-    STATE.showingMenu = false
-  }
-
-  function showCustomInput() {
-    panel.style.display = "grid"
-    customInput.style.display = "grid"
-    answerSection.style.display = "none"
-    customQ.value = ""
-    customQ.focus()
-
-    if (window.gsap && gsapLoaded) {
-      window.gsap.fromTo(panel, { scale: 0.95, opacity: 0 }, { duration: 0.25, scale: 1, opacity: 1, ease: "power2.out" })
-    }
-  }
-
-  function hidePanel() {
-    panel.style.display = "none"
-    customInput.style.display = "none"
-    answerSection.style.display = "none"
-  }
-
-  async function handleAction(action, customQuestion = "") {
-    const text = STATE.selectionText.trim()
-    if (!text) {
-      alert("No text selected")
-      return
-    }
-
-    // Show panel with answer section
-    panel.style.display = "grid"
-    customInput.style.display = "none"
-    answerSection.style.display = "grid"
-    answerBox.innerHTML = `<div class="aixt-empty"><span class="aixt-ico aixt-spin">${Icons.loader}</span><span>Thinking...</span></div>`
-
-    // Get config
-    const cfg = await getConfig()
-    if (cfg?.config) {
-      modelInfo.textContent = `Model: ${cfg.config.model}`
-    }
-
-    if (!cfg?.config?.hasToken) {
-      answerBox.innerHTML = renderMarkdown("**Missing token**. Please configure your GitHub token in the extension settings.")
-      return
-    }
-
-    // Build prompt
-    const prompt = buildPrompt(action, text, customQuestion)
-    const payload = {
-      messages: [
-        { role: "system", content: "You are a helpful assistant. Keep answers concise and well-structured." },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.2,
-    }
-
-    // Send request
-    const res = await chrome.runtime.sendMessage({ type: "ai:chat", payload })
-    
-    if (!res?.ok) {
-      // ensure katex is loaded for consistent rendering of math if present in error text
-      await ensureKatexLoaded()
-      answerBox.innerHTML = renderMarkdown(`**Error:** ${res?.error || "Unknown error"}`)
-      return
-    }
-
-    // Ensure KaTeX is available (loads from CDN once). We don't fail if KaTeX doesn't load.
-    await ensureKatexLoaded()
-
-    const html = renderMarkdown(res.content)
-    answerBox.innerHTML = html
-
-    if (window.gsap && gsapLoaded) {
-      window.gsap.fromTo(answerBox, { y: 10, opacity: 0 }, { duration: 0.3, y: 0, opacity: 1, ease: "power2.out" })
-    }
-  }
-
-  function buildPrompt(action, text, customQ) {
-    const base = `Selected text:\n"""\n${text}\n"""`
-    switch (action) {
-      case "what":
-        return `${base}\n\nTask: Describe briefly what this is and its purpose. Return clear 3-5 bullet points.`
-      case "summarize":
-        return `${base}\n\nTask: Summarize concisely with key points and a one-line TL;DR.`
-      case "answer":
-        return `${base}\n\nTask: If the selection contains a question, answer it directly with reasoning. If not a question, state 'No question found' and summarize instead.`
-      case "explain":
-        return `${base}\n\nTask: Explain the content step-by-step for a beginner, including simple examples.`
-      case "custom":
-      default:
-        return `${base}\n\nTask: ${customQ || "Provide helpful insights and a brief summary."}`
-    }
-  }
-
-  function getSelectionRect() {
-    const sel = window.getSelection()
-    if (!sel || sel.rangeCount === 0) return null
-
-    // Prefer the focus (where the user finished the selection). This respects selection direction
-    const focusNode = sel.focusNode
-    const focusOffset = sel.focusOffset
-
-    try {
-      const r = document.createRange()
-
-      // If focus is a text node, try a collapsed range at the focus. If that yields no rect,
-      // try the previous character range to get a visible rect.
-      if (focusNode && focusNode.nodeType === Node.TEXT_NODE) {
-        r.setStart(focusNode, Math.max(0, focusOffset))
-        r.setEnd(focusNode, Math.max(0, focusOffset))
-        const collapsedRect = r.getClientRects()[0] || r.getBoundingClientRect()
-        if (collapsedRect && (collapsedRect.width || collapsedRect.height)) return collapsedRect
-
-        if (focusOffset > 0) {
-          r.setStart(focusNode, focusOffset - 1)
-          r.setEnd(focusNode, focusOffset)
-          const prevRects = r.getClientRects()
-          if (prevRects && prevRects.length) return prevRects[prevRects.length - 1]
-        }
-      } else if (focusNode) {
-        // If focus is an element node, try selecting the child at offset-1 or offset
-        const idx = Math.max(0, Math.min((focusOffset || 0) - 1, (focusNode.childNodes || []).length - 1))
-        const candidate = focusNode.childNodes && focusNode.childNodes[idx]
-        if (candidate) {
-          r.selectNodeContents(candidate)
-          const rects = r.getClientRects()
-          if (rects && rects.length) return rects[rects.length - 1]
-        }
-      }
-    } catch (e) {
-      // ignore and fallback
-    }
-
-    // Fallback: return the bounding rect of the whole range
-    try {
-      const range = sel.getRangeAt(0).cloneRange()
-      const rect = range.getBoundingClientRect()
-      if (rect && (rect.width || rect.height)) return rect
-    } catch (e) {
-      // ignore
-    }
-
-    return null
-  }
-
-  async function getConfig() {
-    try {
-      const res = await chrome.runtime.sendMessage({ type: "ai:getConfig" })
-      return res
-    } catch {
-      return null
-    }
-  }
-})()
+})();

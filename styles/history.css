@@ -1,0 +1,30 @@
+/* styles/history.css — Supplemental popup styles */
+/* All main popup styles are in popup.html <style> block */
+
+/* Animate tab content transitions */
+.tab-content {
+  animation: fadeIn 0.15s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Detail overlay slide-in */
+#detail-overlay {
+  animation: slideIn 0.18s ease both;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* List container scrollbar */
+.list-container::-webkit-scrollbar { width: 4px; }
+.list-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Detail body scrollbar */
+.detail-body::-webkit-scrollbar { width: 4px; }
+.detail-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
