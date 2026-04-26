@@ -102,10 +102,22 @@ export function positionElement(el, x, y) {
   let left = x + 10;
   let top = y + 10;
 
-  if (left + rect.width > vw - 10) left = vw - rect.width - 10;
-  if (top + rect.height > vh - 10) top = y - rect.height - 10;
-  if (left < 10) left = 10;
+  // If menu would overflow bottom, flip it above the cursor
+  if (top + rect.height > vh - 10) {
+    top = y - rect.height - 10;
+  }
+  // If still overflow top or if y itself is too low, clamp to viewport
   if (top < 10) top = 10;
+
+  if (left + rect.width > vw - 10) left = vw - rect.width - 10;
+  if (left < 10) left = 10;
+
+  // If element is taller than viewport, cap its height and enable scrolling
+  if (rect.height > vh - 20) {
+    el.style.maxHeight = `${vh - 20}px`;
+    el.style.overflowY = 'auto';
+    top = 10;
+  }
 
   el.style.left = `${left}px`;
   el.style.top = `${top}px`;
@@ -115,8 +127,32 @@ export function positionElement(el, x, y) {
 export function positionPanel(panelEl) {
   panelEl.style.position = 'fixed';
   panelEl.style.zIndex = '2147483646';
-  panelEl.style.right = '20px';
-  panelEl.style.top = '80px';
+
+  const rect = panelEl.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  let right = 20;
+  let top = 80;
+
+  // Ensure panel stays within viewport horizontally
+  if (rect.width + right > vw - 10) {
+    right = 10;
+  }
+  // Ensure panel stays within viewport vertically
+  if (rect.height + top > vh - 10) {
+    top = Math.max(10, vh - rect.height - 10);
+  }
+
+  panelEl.style.right = `${right}px`;
+  panelEl.style.top = `${top}px`;
+
+  // If panel is taller than viewport, cap it and make body scrollable
+  if (rect.height > vh - 20) {
+    panelEl.style.maxHeight = `${vh - 20}px`;
+    const body = panelEl.querySelector('.s2ai-panel-body');
+    if (body) body.style.overflowY = 'auto';
+  }
 }
 
 export function makeDraggable(el, handle) {
@@ -233,7 +269,7 @@ export function createActionMenu(options) {
     btn.setAttribute('role', 'menuitem');
     btn.dataset.action = actionGroup.id;
     btn.innerHTML = `
-      <span class="s2ai-menu-btn-icon">${meta.icon}</span>
+      <span class="s2ai-menu-btn-icon">${getIconSvg(meta.icon, 14)}</span>
       <span class="s2ai-menu-btn-label">${meta.label}</span>
       ${actionGroup.suggested ? `<span class="s2ai-suggested-badge">${getIconSvg('sparkles', 10)}</span>` : ''}
     `;
@@ -279,7 +315,7 @@ export function createActionMenu(options) {
     onCompareToggle();
     const newState = !compareMode;
     e.currentTarget.classList.toggle('active', newState);
-    e.currentTarget.innerHTML = `${getIconSvg('zap', 10)} ${newState ? 'Compare ON' : 'Compare'}`;
+    e.currentTarget.innerHTML = `${getIconSvg('layout', 10)} ${newState ? 'Compare ON' : 'Compare'}`;
   });
 
   footer.querySelector('#s2ai-context-toggle').addEventListener('click', (e) => {
@@ -289,7 +325,16 @@ export function createActionMenu(options) {
   });
 
   // Position
-  positionElement(menu, options.x, options.y);
+  // NOTE: positionElement is called by the caller AFTER appending to DOM
+  // so getBoundingClientRect() returns real dimensions.
+
+  // GSAP entrance animation
+  if (window.gsap) {
+    gsap.fromTo(menu,
+      { opacity: 0, y: -10 },
+      { opacity: 1, y: 0, duration: 0.2 }
+    );
+  }
 
   // Close on outside click
   setTimeout(() => {
@@ -297,6 +342,35 @@ export function createActionMenu(options) {
   }, 10);
 
   return menu;
+}
+
+export function createTriggerButton(options) {
+  const { x, y, onClick } = options;
+  const btn = document.createElement('button');
+  btn.id = 's2ai-trigger-btn';
+  btn.className = 's2ai-trigger-btn';
+  btn.innerHTML = getIconSvg('zap', 18);
+  btn.title = 'Open Select2AI actions';
+  btn.setAttribute('aria-label', 'Open actions');
+
+  btn.style.position = 'fixed';
+  btn.style.zIndex = '2147483647';
+  btn.style.left = `${x + 8}px`;
+  btn.style.top = `${y + 8}px`;
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onClick();
+  });
+
+  if (window.gsap) {
+    gsap.fromTo(btn,
+      { opacity: 0, y: 5 },
+      { opacity: 1, y: 0, duration: 0.2 }
+    );
+  }
+
+  return btn;
 }
 
 function isEmoji(str) {
@@ -318,7 +392,7 @@ export function createPanel(options) {
   panelEl.innerHTML = `
     <div class="s2ai-panel-header">
       <div class="s2ai-panel-title">
-        <span class="s2ai-panel-icon">${actionMeta.icon}</span>
+        <span class="s2ai-panel-icon">${getIconSvg(actionMeta.icon, 15)}</span>
         <span class="s2ai-panel-title-text">${escapeHtml(title)}</span>
         ${detection ? `<span class="s2ai-type-chip s2ai-type-chip--${detection.type}">${getTypeIcon(detection.type)} ${detection.wordCount}w</span>` : ''}
       </div>
@@ -333,10 +407,12 @@ export function createPanel(options) {
           ${getIconSvg('ctrl-close', 13)}
         </button>
       </div>
+    </div>
 
     <div class="s2ai-selected-preview">
       <div class="s2ai-selected-text">${escapeHtml(selectedText.slice(0, 200))}${selectedText.length > 200 ? '…' : ''}</div>
       <div class="s2ai-turn-count" title="Conversation turns">0 turns</div>
+    </div>
 
     <div class="s2ai-panel-body">
       ${action === 'custom' ? `
@@ -352,6 +428,7 @@ export function createPanel(options) {
         <div class="s2ai-answer-area">
           <div class="s2ai-loading">
             <div class="s2ai-typing-dots"><span></span><span></span><span></span></div>
+          </div>
         </div>
       `}
 
@@ -361,6 +438,7 @@ export function createPanel(options) {
           ${getIconSvg('ctrl-send', 13)}
         </button>
       </div>
+    </div>
 
     <div class="s2ai-panel-footer">
       <span class="s2ai-model-indicator">${escapeHtml(settings.model || 'gpt-4.1-mini')}</span>
@@ -440,7 +518,8 @@ export function createPanel(options) {
     panelEl.style.opacity = '1';
   }
 
-  positionPanel(panelEl);
+  // NOTE: positionPanel is called by the caller AFTER appending to DOM
+  // so getBoundingClientRect() returns real dimensions.
   return panelEl;
 }
 

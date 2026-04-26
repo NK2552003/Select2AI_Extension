@@ -62,14 +62,39 @@
   border-radius: var(--s2ai-radius);
   box-shadow: var(--s2ai-shadow-lg);
   width: 230px;
+  max-width: 95vw;
   overflow: hidden;
   user-select: none;
-  animation: s2ai-menu-in 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-@keyframes s2ai-menu-in {
-  from { opacity: 0; transform: scale(0.93) translateY(-6px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+/* ── Trigger Button ─────────────────────────────────────────── */
+#s2ai-trigger-btn {
+  position: fixed;
+  z-index: 2147483647;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--s2ai-accent);
+  color: #fff;
+  border: none;
+  box-shadow: var(--s2ai-shadow-lg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+#s2ai-trigger-btn:hover {
+  transform: scale(1.1);
+  background: var(--s2ai-accent-hover);
+}
+
+#s2ai-trigger-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: #fff;
 }
 
 /* ── Insights Bar ────────────────────────────────────────────── */
@@ -247,6 +272,7 @@
   right: 20px;
   top: 80px;
   width: var(--s2ai-panel-w);
+  max-width: min(380px, 95vw);
   max-height: var(--s2ai-panel-max-h);
   background: var(--s2ai-bg);
   border: 1px solid var(--s2ai-border);

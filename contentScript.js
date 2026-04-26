@@ -17,7 +17,7 @@
   const {
     escapeHtml, renderMarkdown, renderKaTeX, getTypeIcon,
     showToast, showError, positionElement, positionPanel,
-    makeDraggable, createActionMenu, createPanel, animatePanelClose,
+    makeDraggable, createActionMenu, createTriggerButton, createPanel, animatePanelClose,
     createLanguagePicker
   } = await import(chrome.runtime.getURL('modules/contentUI.js'));
   const { createQueryExecutor } = await import(chrome.runtime.getURL('modules/contentQuery.js'));
@@ -25,6 +25,7 @@
   // ── State ─────────────────────────────────────────────────────
   let panel = null;
   let actionMenu = null;
+  let triggerButton = null;
   let currentSelection = '';
   let currentDetection = null;
   let settings = {};
@@ -211,6 +212,36 @@
     });
 
     document.body.appendChild(panel);
+    positionPanel(panel);
+  }
+
+  // ── Trigger Button ────────────────────────────────────────────
+  function showTriggerButton(x, y, selectedText, detection) {
+    removeTriggerButton();
+    triggerButton = createTriggerButton({
+      x, y,
+      onClick: () => {
+        removeTriggerButton();
+        showActionMenu(x, y, selectedText, detection);
+      }
+    });
+    document.body.appendChild(triggerButton);
+
+    setTimeout(() => {
+      document.addEventListener('click', function onDocClick(e) {
+        if (triggerButton && !triggerButton.contains(e.target)) {
+          removeTriggerButton();
+          document.removeEventListener('click', onDocClick, true);
+        }
+      }, { once: true, capture: true });
+    }, 10);
+  }
+
+  function removeTriggerButton() {
+    if (triggerButton) {
+      triggerButton.remove();
+      triggerButton = null;
+    }
   }
 
   // ── Action Menu ───────────────────────────────────────────────
@@ -237,6 +268,7 @@
     });
 
     document.body.appendChild(actionMenu);
+    positionElement(actionMenu, x, y);
   }
 
   // ── Remove helpers ────────────────────────────────────────────
@@ -252,20 +284,20 @@
   // ── Text Selection Handler ─────────────────────────────────────
   let selectionTimeout = null;
   document.addEventListener('mouseup', (e) => {
-    if (panel?.contains(e.target) || actionMenu?.contains(e.target)) return;
+    if (panel?.contains(e.target) || actionMenu?.contains(e.target) || triggerButton?.contains(e.target)) return;
     clearTimeout(selectionTimeout);
     selectionTimeout = setTimeout(async () => {
       const selection = window.getSelection();
       const selectedText = selection?.toString().trim();
-      if (!selectedText || selectedText.length < 3) { removeActionMenu(); return; }
+      if (!selectedText || selectedText.length < 3) { removeTriggerButton(); removeActionMenu(); return; }
       const range = selection.getRangeAt(0);
       const rect = range.getBoundingClientRect();
-      showActionMenu(rect.right, rect.bottom, selectedText, detectContentType(selectedText));
+      showTriggerButton(rect.right, rect.bottom, selectedText, detectContentType(selectedText));
     }, 200);
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { removeActionMenu(); removePanel(); }
+    if (e.key === 'Escape') { removeTriggerButton(); removeActionMenu(); removePanel(); }
   });
 
   // ── Context menu & commands ───────────────────────────────────
